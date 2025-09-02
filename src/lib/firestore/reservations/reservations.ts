@@ -59,3 +59,19 @@ export async function listMyReservations(userId: string) {
     };
   });
 }
+
+export async function cancelReservationApi(reservationId: string, reason?: string) {
+  const user = auth.currentUser;
+  if (!user) throw new Error("No auth");
+  const token = await getIdToken(user, true);
+  const res = await fetch("/api/reservations/cancel", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ reservationId, reason, cancelledBy: 'customer' }),
+  });
+  if (!res.ok) {
+    const errorData = await res.json();
+    throw new Error(errorData.error || "Error cancelando reserva");
+  }
+  return res.json();
+}

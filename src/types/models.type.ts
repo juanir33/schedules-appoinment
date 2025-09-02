@@ -18,6 +18,11 @@ export interface Reservation  {
   endISO: string;   // ISO
   status: ReservationStatus;
   googleEventId?: string;
+  customerEmail?: string;
+  // Campos de cancelación
+  cancelledAt?: string; // ISO timestamp
+  cancellationReason?: string;
+  cancelledBy?: 'customer' | 'admin';
 };
 
 export interface CalendarSettings {

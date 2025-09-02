@@ -3,32 +3,39 @@
 import { useEffect, useState } from "react";
 import Protected from "@/src/components/Protected";
 import { useAuth } from "@/src/context/auth/AuthContext.context";
-import { listMyReservations } from "@/src/lib/firestore";
+import { listMyReservations, cancelReservationApi } from "@/src/lib/firestore";
 import { listServices } from "@/src/lib/firestore/services/services";
-import { Reservation, Service } from "@/src/types/models.type";
-import { Calendar, Clock, User, Sparkles, CheckCircle, XCircle, ArrowLeft } from "lucide-react";
+import { getBusinessSettings } from "@/src/lib/firestore/businessSettings/businessSettings";
+import { Reservation, Service, BusinessSettings } from "@/src/types/models.type";
+import { Calendar, Clock, User, Sparkles, CheckCircle, XCircle, ArrowLeft, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { ReservationStatus } from "@/src/lib/firestore/enums/reservation.enum";
+import toast from "react-hot-toast";
+import { showConfirmToast } from "@/src/components/ConfirmToast/ConfirmToast";
 
 export default function MisReservas() {
   const { user } = useAuth();
   console.log("🚀 ~ MisReservas ~ user:", user)
   const [reservas, setReservas] = useState<Reservation[]>([]);
   const [services, setServices] = useState<Service[]>([]);
+  const [businessSettings, setBusinessSettings] = useState<BusinessSettings | null>(null);
   const [loading, setLoading] = useState(true);
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
 
   useEffect(() => {
     const loadData = async () => {
       if (user) {
         try {
-          const [reservasData, servicesData] = await Promise.all([
+          const [reservasData, servicesData, businessData] = await Promise.all([
             listMyReservations(user.uid),
-            listServices()
+            listServices(),
+            getBusinessSettings('default')
           ]);
           setReservas(reservasData);
           setServices(servicesData);
+          setBusinessSettings(businessData);
         } catch (error) {
           console.error('Error loading data:', error);
         } finally {
@@ -96,6 +103,69 @@ export default function MisReservas() {
         return <XCircle className="w-4 h-4" />;
       default:
         return <Clock className="w-4 h-4" />;
+    }
+  };
+
+  const canCancelReservation = (reserva: Reservation) => {
+    // No se puede cancelar si ya está cancelada
+    if (reserva.status === ReservationStatus.CANCELLED) {
+      return { canCancel: false, reason: 'Ya está cancelada' };
+    }
+
+    // Verificar si las cancelaciones están permitidas
+    if (!businessSettings?.reservationSettings.allowCancellation) {
+      return { canCancel: false, reason: 'Las cancelaciones no están permitidas' };
+    }
+
+    // Verificar tiempo límite para cancelación
+    const reservationStart = new Date(reserva.startISO);
+    const now = new Date();
+    const hoursUntilReservation = (reservationStart.getTime() - now.getTime()) / (1000 * 60 * 60);
+    
+    if (hoursUntilReservation < (businessSettings?.reservationSettings.cancellationHours || 24)) {
+      return { 
+        canCancel: false, 
+        reason: `Debe cancelar al menos ${businessSettings?.reservationSettings.cancellationHours || 24} horas antes` 
+      };
+    }
+
+    return { canCancel: true, reason: '' };
+  };
+
+  const handleCancelReservation = async (reservationId: string) => {
+    showConfirmToast({
+      message: '¿Estás seguro de que quieres cancelar esta reserva?',
+      confirmText: 'Sí, cancelar',
+      cancelText: 'No, mantener',
+      type: 'danger',
+      onConfirm: () => {
+        performCancellation(reservationId);
+      },
+      onCancel: () => {
+        // No hacer nada, solo cerrar el toast
+      }
+    });
+  };
+
+  const performCancellation = async (reservationId: string) => {
+    setCancellingId(reservationId);
+    try {
+      await cancelReservationApi(reservationId, 'Cancelada por el cliente');
+      // Recargar las reservas
+      if (user) {
+        const updatedReservas = await listMyReservations(user.uid);
+        setReservas(updatedReservas);
+      }
+      toast.success('Reserva cancelada exitosamente', {
+        duration: 4000,
+      });
+    } catch (error) {
+      console.error('Error cancelando reserva:', error);
+      toast.error(error instanceof Error ? error.message : 'Error cancelando la reserva', {
+        duration: 5000,
+      });
+    } finally {
+      setCancellingId(null);
     }
   };
 
@@ -188,11 +258,43 @@ export default function MisReservas() {
                       </div>
                     </div>
                     
-                    <div className="flex items-center justify-center md:justify-end">
+                    <div className="flex items-center justify-center md:justify-end gap-3">
                       <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full border text-sm font-medium ${getStatusColor(reserva.status)}`}>
                         {getStatusIcon(reserva.status)}
                         {getStatusText(reserva.status)}
                       </div>
+                      
+                      {(() => {
+                        const cancelInfo = canCancelReservation(reserva);
+                        if (cancelInfo.canCancel) {
+                          return (
+                            <button
+                              onClick={() => handleCancelReservation(reserva.id)}
+                              disabled={cancellingId === reserva.id}
+                              className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 hover:border-red-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                              title="Cancelar reserva"
+                            >
+                              {cancellingId === reserva.id ? (
+                                <div className="w-4 h-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
+                              ) : (
+                                <Trash2 className="w-4 h-4" />
+                              )}
+                              {cancellingId === reserva.id ? 'Cancelando...' : 'Cancelar'}
+                            </button>
+                          );
+                        } else if (reserva.status !== ReservationStatus.CANCELLED) {
+                          return (
+                            <div 
+                              className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-400 bg-gray-50 border border-gray-200 rounded-lg cursor-not-allowed"
+                              title={cancelInfo.reason}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                              No se puede cancelar
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()} 
                     </div>
                   </div>
                 </div>
