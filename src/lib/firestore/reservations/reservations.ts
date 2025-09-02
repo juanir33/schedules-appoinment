@@ -28,7 +28,7 @@ export const createReservation = async (
   });
 };
 
-export async function createReservationApi(body: { customer: string; serviceId: string; startISO: string }) {
+export async function createReservationApi(body: { customer: string; serviceId: string; startISO: string; customerEmail?: string }) {
   const user = auth.currentUser;
   if (!user) throw new Error("No auth");
   const token = await getIdToken(user, true);

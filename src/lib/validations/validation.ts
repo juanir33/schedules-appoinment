@@ -11,6 +11,7 @@ export const reservationSchema = z.object({
   client: z.string().min(2),
   serviceId: z.string().min(1),
   startISO: z.string().datetime(),
+  customerEmail: z.string().email("Email válido requerido").optional().or(z.literal("")),
 });
 export const holidaySchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Formato YYYY-MM-DD"),

@@ -14,7 +14,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import z from "zod";
 import Link from "next/link";
-import { Calendar, Clock, User, Sparkles, CheckCircle, XCircle, List } from "lucide-react";
+import { Calendar, Clock, User, Sparkles, CheckCircle, XCircle, List, Mail } from "lucide-react";
 
 type FormData = z.infer<typeof reservationSchema>;
 
@@ -86,6 +86,7 @@ export default function Reservas() {
         customer: data.client,
         serviceId: data.serviceId,
         startISO: data.startISO,
+        customerEmail: data.customerEmail,
       });
       if (user) setReservas(await listMyReservations(user.uid));
       setSubmitMessage('¡Reserva creada exitosamente!');
@@ -94,6 +95,7 @@ export default function Reservas() {
       setValue('client', '');
       setValue('serviceId', '');
       setValue('startISO', '');
+      setValue('customerEmail', '');
     } catch (error) {
       setSubmitMessage('Error al crear la reserva. Intenta nuevamente.');
       setSubmitType('error');
@@ -141,6 +143,29 @@ export default function Reservas() {
                     {errors.client.message}
                   </p>
                 )}
+              </div>
+
+              {/* Customer Email */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-3">
+                  <Mail className="w-4 h-4 inline mr-2" />
+                  Tu email (opcional)
+                </label>
+                <input
+                  type="email"
+                  placeholder="tu@email.com - Para recibir invitación de calendario"
+                  {...register("customerEmail")}
+                  className="input-elegant"
+                />
+                {errors.customerEmail && (
+                  <p className="mt-2 text-sm text-red-600 flex items-center gap-2">
+                    <XCircle className="w-4 h-4" />
+                    {errors.customerEmail.message}
+                  </p>
+                )}
+                <p className="mt-1 text-sm text-gray-500">
+                  Si proporcionas tu email, recibirás una invitación de calendario para agregar la cita a tu agenda.
+                </p>
               </div>
 
               {/* Service Selection */}

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { adminAuth, adminDb } from "@/src/lib/firebase/firebaseAdmin";
 import { Timestamp } from "firebase-admin/firestore";
 import { localStringToUtc } from "@/src/helpers/time";
+import { createEmailCalendarService } from "@/src/lib/services/emailCalendarService";
 
 interface Settings {
   businessTimeZone: string;
@@ -34,8 +35,8 @@ export async function POST(req: NextRequest) {
     const userId = decoded.uid;
 
     const body = await req.json();
-    const { customer, serviceId, startLocal, tz } = body as {
-      customer: string; serviceId: string; startLocal: string; tz: string;
+    const { customer, serviceId, startLocal, tz, customerEmail } = body as {
+      customer: string; serviceId: string; startLocal: string; tz: string; customerEmail?: string;
     };
     if (!customer || !serviceId || !startLocal || !tz) {
       return NextResponse.json({ error: "Campos faltantes" }, { status: 400 });
@@ -92,6 +93,29 @@ export async function POST(req: NextRequest) {
       status: "pending",
       createdAt: Timestamp.now(),
     });
+
+    // Enviar invitación de calendario si hay email del cliente
+    if (customerEmail) {
+      try {
+        const calendarService = await createEmailCalendarService('default');
+        if (calendarService) {
+          const businessInfo = calendarService.getBusinessInfo();
+          await calendarService.createCalendarInvite({
+            summary: `Cita: ${service.name}`,
+            description: `Reserva confirmada para ${customer}\n\nServicio: ${service.name}\nDuración: ${service.durationMin} minutos`,
+            startDateTime: new Date(startUtc).toISOString(),
+            endDateTime: endUtc.toISOString(),
+            location: businessInfo?.address ? `${businessInfo.address.street}, ${businessInfo.address.city}` : undefined,
+            customerEmail,
+            customerName: customer
+          });
+          console.log('📅 Calendar invitation sent to:', customerEmail);
+        }
+      } catch (calendarError) {
+        console.error('Error sending calendar invitation:', calendarError);
+        // No fallar la reserva si el calendario falla
+      }
+    }
 
     return NextResponse.json({ id: ref.id }, { status: 200 });
   } catch (e: unknown) {

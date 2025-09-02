@@ -2,7 +2,7 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { adminAuth, adminDb } from "@/src/lib/firebase/firebaseAdmin";
 import { Timestamp } from "firebase-admin/firestore";
-import { createCalendarService } from "@/src/lib/services/calendarService";
+import { createEmailCalendarService } from "@/src/lib/services/emailCalendarService";
 
 function toISO(d: Date | string) {
   return (typeof d === "string" ? new Date(d) : d).toISOString();
@@ -22,8 +22,8 @@ export async function POST(req: NextRequest) {
     const userId = decoded.uid;
 
     const body = await req.json();
-    const { customer, serviceId, startISO } = body as {
-      customer: string; serviceId: string; startISO: string;
+    const { customer, serviceId, startISO, customerEmail } = body as {
+      customer: string; serviceId: string; startISO: string; customerEmail?: string;
     };
     if (!customer || !serviceId || !startISO) return NextResponse.json({ error: "Missing fields" }, { status: 400 });
 
@@ -65,33 +65,33 @@ export async function POST(req: NextRequest) {
       createdId = ref.id;
     });
 
-    // Integración con calendario (parametrizable por negocio)
-    // Por ahora usamos un businessId por defecto, pero esto debería venir del contexto del usuario
-    const businessId = "default"; // TODO: Obtener del contexto del usuario/negocio
-    
-    const calendarService = await createCalendarService(businessId);
-    let googleEventId: string | undefined;
-    
-    if (calendarService) {
-      const calendarEvent = await calendarService.createEvent({
-        summary: `${serviceData.name} - ${customer}`,
-        description: `Reserva de ${serviceData.name} para ${customer}`,
-        startDateTime: toISO(start),
-        endDateTime: toISO(end),
-      });
-      
-      googleEventId = calendarEvent?.id;
+    // Enviar invitación de calendario si hay email del cliente
+    if (customerEmail) {
+      try {
+        const calendarService = await createEmailCalendarService('default');
+        if (calendarService) {
+          const businessInfo = calendarService.getBusinessInfo();
+          await calendarService.createCalendarInvite({
+            summary: `Cita: ${serviceData.name}`,
+            description: `Reserva confirmada para ${customer}\n\nServicio: ${serviceData.name}\nDuración: ${serviceData.durationMin} minutos`,
+            startDateTime: toISO(start),
+            endDateTime: toISO(end),
+            location: businessInfo?.address ? `${businessInfo.address.street}, ${businessInfo.address.city}` : undefined,
+            customerEmail,
+            customerName: customer
+          });
+          console.log('📅 Calendar invitation sent to:', customerEmail);
+        }
+      } catch (calendarError) {
+        console.error('Error sending calendar invitation:', calendarError);
+        // No fallar la reserva si el calendario falla
+      }
     }
 
-    // Actualizar la reserva con el eventId si se creó
-    const updateData: { status: string; googleEventId?: string } = { status: "confirmed" };
-    if (googleEventId) {
-      updateData.googleEventId = googleEventId;
-    }
-    
-    await reservationsCol.doc(createdId).update(updateData);
+    // Actualizar la reserva como confirmada
+    await reservationsCol.doc(createdId).update({ status: "confirmed" });
 
-    return NextResponse.json({ id: createdId, googleEventId }, { status: 200 });
+    return NextResponse.json({ id: createdId }, { status: 200 });
   } catch (err: unknown) {
     // Si falló Calendar, podrías revertir la reserva o marcar estado
     console.error(err);
