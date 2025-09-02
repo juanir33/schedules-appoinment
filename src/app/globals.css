@@ -1,28 +1,206 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap');
 @import "tailwindcss";
-@import "tailwindcss/preflight";
+@import "tailwindcss/utilities";
 
-@tailwind utilities;
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+  /* Colores inspirados en Local Honey */
+  --primary-cream: #FDF8F3;
+  --primary-beige: #F5E6D3;
+  --accent-gold: #D4AF37;
+  --accent-rose: #E8B4B8;
+  --text-dark: #2C1810;
+  --text-medium: #5D4E37;
+  --text-light: #8B7355;
+  --background-light: #FEFCFA;
+  --background-overlay: rgba(253, 248, 243, 0.95);
+  
+  /* Sombras suaves */
+  --shadow-soft: 0 4px 20px rgba(44, 24, 16, 0.08);
+  --shadow-medium: 0 8px 30px rgba(44, 24, 16, 0.12);
+  --shadow-strong: 0 12px 40px rgba(44, 24, 16, 0.16);
+  
+  /* Gradientes elegantes */
+  --gradient-warm: linear-gradient(135deg, var(--primary-cream) 0%, var(--primary-beige) 100%);
+  --gradient-gold: linear-gradient(135deg, var(--accent-gold) 0%, #B8860B 100%);
+  --gradient-rose: linear-gradient(135deg, var(--accent-rose) 0%, #D4A5A8 100%);
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --color-background: var(--background-light);
+  --color-foreground: var(--text-dark);
+  --font-sans: 'Inter', var(--font-geist-sans), system-ui, sans-serif;
+  --font-serif: 'Playfair Display', Georgia, serif;
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+body {
+  background: var(--background-light);
+  color: var(--text-dark);
+  font-family: 'Inter', system-ui, sans-serif;
+  font-weight: 400;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Tipografías personalizadas */
+.font-display {
+  font-family: 'Playfair Display', Georgia, serif;
+}
+
+.font-body {
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+/* Componentes base reutilizables */
+.btn-primary {
+  background: linear-gradient(135deg, #D4AF37 0%, #B8860B 100%);
+  color: white;
+  padding: 12px 24px;
+  border-radius: 9999px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, #B8860B 0%, #9A7209 100%);
+  box-shadow: 0 10px 25px rgba(212, 175, 55, 0.3);
+  transform: translateY(-2px);
+}
+
+.btn-secondary {
+  background: white;
+  color: #2C1810;
+  padding: 12px 24px;
+  border-radius: 9999px;
+  font-weight: 500;
+  border: 1px solid #E5E7EB;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-secondary:hover {
+  background: #F9FAFB;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+}
+
+.card-elegant {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  box-shadow: 0 8px 30px rgba(44, 24, 16, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.3s ease;
+
+}
+
+.card-elegant:hover {
+  box-shadow: 0 12px 40px rgba(44, 24, 16, 0.16);
+}
+
+.input-elegant {
+  width: 100%;
+  max-width: 400px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 1px solid #E5E7EB;
+  background: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(5px);
+  transition: all 0.3s ease;
+  font-family: 'Inter', system-ui, sans-serif;
+  margin: 0 auto;
+  display: block;
+}
+
+.input-elegant:focus {
+  outline: none;
+  border-color: #D4AF37;
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1);
+  background: rgba(255, 255, 255, 0.8);
+}
+
+/* Animaciones suaves */
+.fade-in {
+  animation: fadeIn 0.6s ease-out;
+}
+
+.slide-up {
+  animation: slideUp 0.8s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Estilos para navbar del admin */
+.nav-link {
+  @apply flex items-center space-x-2 px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-white/60 rounded-lg transition-all duration-200 ease-in-out;
+}
+
+.nav-link:hover {
+  @apply shadow-sm transform scale-105;
+}
+
+.nav-link-active {
+  @apply bg-white/90 text-gray-900 shadow-md ring-1 ring-amber-200/50;
+}
+
+.nav-link-active:hover {
+  @apply bg-white shadow-lg;
+}
+
+/* Estilos para navegación móvil */
+.mobile-nav-link {
+  @apply flex items-center space-x-3 px-3 py-3 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-all duration-200;
+}
+
+.mobile-nav-link-active {
+  @apply bg-gradient-to-r from-amber-50 to-rose-50 text-gray-900 border-l-4 border-amber-400;
+}
+
+.mobile-nav-link-active:hover {
+  @apply from-amber-100 to-rose-100;
+}
+
+/* Scrollbar personalizada */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--primary-cream);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--accent-gold);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #B8860B;
 }

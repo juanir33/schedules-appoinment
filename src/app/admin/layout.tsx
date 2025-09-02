@@ -1,21 +1,159 @@
+"use client";
 import Protected from "@components/Protected";
 import LogoutButton from "@components/LogoutButton";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useState } from "react";
+import { Crown, Home, Calendar, Ban, Settings, Users, ArrowLeft, Menu, X } from "lucide-react";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const isActive = (path: string) => {
+    if (path === '/admin') {
+      return pathname === '/admin';
+    }
+    return pathname.startsWith(path);
+  };
+
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
+  };
+
   return (
     <Protected>
-      <div className="p-4 max-w-6xl mx-auto">
-        <header className="mb-6 flex items-center justify-between">
-          <h1 className="text-2xl font-bold">Panel Administrativo</h1>
-          <nav className="flex gap-4 text-sm">
-            <Link href="/admin">Inicio</Link>
-            <Link href="/admin/calendario">Calendario</Link>
-            <Link href="/admin/bloqueos">Bloqueos</Link>
-            <LogoutButton />
-          </nav>
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-rose-50">
+        {/* Navbar elegante */}
+        <header className="bg-white/80 backdrop-filter backdrop-blur-lg border-b border-amber-200/50 shadow-soft sticky top-0 z-50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between h-16">
+              {/* Logo y título */}
+              <div className="flex items-center space-x-2 sm:space-x-4">
+                <div className="flex items-center space-x-2 sm:space-x-3">
+                  <div className="p-1.5 sm:p-2 bg-gradient-to-r from-amber-400 to-rose-400 rounded-lg">
+                    <Crown className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                  </div>
+                  <div>
+                    <h1 className="font-display text-lg sm:text-xl font-bold text-gray-900">Panel Admin</h1>
+                    <p className="text-xs text-gray-600 hidden sm:block">Gestión del salón</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Navegación principal - Desktop */}
+              <nav className="hidden lg:flex items-center space-x-1">
+                <Link href="/admin" className={`nav-link group ${isActive('/admin') ? 'nav-link-active' : ''}`}>
+                  <Home className="w-4 h-4 text-amber-600 group-hover:text-amber-700" />
+                  <span>Inicio</span>
+                </Link>
+                <Link href="/admin/calendar" className={`nav-link group ${isActive('/admin/calendar') ? 'nav-link-active' : ''}`}>
+                  <Calendar className="w-4 h-4 text-blue-600 group-hover:text-blue-700" />
+                  <span>Calendario</span>
+                </Link>
+                <Link href="/admin/services" className={`nav-link group ${isActive('/admin/services') ? 'nav-link-active' : ''}`}>
+                  <Settings className="w-4 h-4 text-green-600 group-hover:text-green-700" />
+                  <span>Servicios</span>
+                </Link>
+                <Link href="/admin/blockday" className={`nav-link group ${isActive('/admin/blockday') ? 'nav-link-active' : ''}`}>
+                  <Ban className="w-4 h-4 text-red-600 group-hover:text-red-700" />
+                  <span>Bloqueos</span>
+                </Link>
+                <Link href="/admin/users" className={`nav-link group ${isActive('/admin/users') ? 'nav-link-active' : ''}`}>
+                  <Users className="w-4 h-4 text-purple-600 group-hover:text-purple-700" />
+                  <span>Usuarios</span>
+                </Link>
+              </nav>
+
+              {/* Acciones de usuario - Desktop */}
+              <div className="hidden lg:flex items-center space-x-3">
+                <Link 
+                  href="/" 
+                  className="flex items-center space-x-2 px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  <span>Volver al sitio</span>
+                </Link>
+                <LogoutButton />
+              </div>
+
+              {/* Botón menú móvil */}
+              <div className="lg:hidden flex items-center space-x-2">
+                <Link 
+                  href="/" 
+                  className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                  title="Volver al sitio"
+                >
+                  <ArrowLeft className="w-5 h-5" />
+                </Link>
+                <button
+                  onClick={toggleMobileMenu}
+                  className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+                </button>
+              </div>
+            </div>
+
+            {/* Menú móvil */}
+            {isMobileMenuOpen && (
+              <div className="lg:hidden border-t border-amber-200/50 bg-white/95 backdrop-blur-sm">
+                <div className="px-2 pt-2 pb-3 space-y-1">
+                  <Link 
+                    href="/admin" 
+                    className={`mobile-nav-link ${isActive('/admin') ? 'mobile-nav-link-active' : ''}`}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <Home className="w-5 h-5 text-amber-600" />
+                    <span>Inicio</span>
+                  </Link>
+                  <Link 
+                    href="/admin/calendar" 
+                    className={`mobile-nav-link ${isActive('/admin/calendar') ? 'mobile-nav-link-active' : ''}`}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <Calendar className="w-5 h-5 text-blue-600" />
+                    <span>Calendario</span>
+                  </Link>
+                  <Link 
+                    href="/admin/services" 
+                    className={`mobile-nav-link ${isActive('/admin/services') ? 'mobile-nav-link-active' : ''}`}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <Settings className="w-5 h-5 text-green-600" />
+                    <span>Servicios</span>
+                  </Link>
+                  <Link 
+                    href="/admin/blockday" 
+                    className={`mobile-nav-link ${isActive('/admin/blockday') ? 'mobile-nav-link-active' : ''}`}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <Ban className="w-5 h-5 text-red-600" />
+                    <span>Bloqueos</span>
+                  </Link>
+                  <Link 
+                    href="/admin/users" 
+                    className={`mobile-nav-link ${isActive('/admin/users') ? 'mobile-nav-link-active' : ''}`}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <Users className="w-5 h-5 text-purple-600" />
+                    <span>Usuarios</span>
+                  </Link>
+                  <div className="pt-2 border-t border-gray-200">
+                    <div className="px-3">
+                      <LogoutButton />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </header>
-        {children}
+
+        {/* Contenido principal */}
+        <main className="flex-1">
+          {children}
+        </main>
       </div>
     </Protected>
   );

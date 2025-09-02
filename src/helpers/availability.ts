@@ -52,15 +52,17 @@ export function generateSlotsZoned(params: {
     const inicioLocal = cursorLocal;
     const finLocal = addMinutesLocal(inicioLocal, durMin, tz);
 
-    const inicioUtc = localStringToUtc(inicioLocal, tz);
-    const finUtc = localStringToUtc(finLocal, tz);
+    const inicioUtcISO = localStringToUtc(inicioLocal, tz);
+    const finUtcISO = localStringToUtc(finLocal, tz);
+    const inicioUtc = new Date(inicioUtcISO);
+    const finUtc = new Date(finUtcISO);
 
     // descartar si solapa con bloqueos en UTC
     const overlap = blocksUtc.some(b => rangesOverlap(inicioUtc, finUtc, b.inicioUtc, b.finUtc));
     if (!overlap) {
       slots.push({
-        inicioUtcISO: inicioUtc.toISOString(),
-        finUtcISO: finUtc.toISOString(),
+        inicioUtcISO,
+        finUtcISO,
         inicioLocal,
         finLocal,
       });

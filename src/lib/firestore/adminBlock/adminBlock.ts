@@ -1,5 +1,6 @@
-import { db } from "./firebase";
+
 import { collection, addDoc, getDocs, deleteDoc, doc } from "firebase/firestore";
+import { db } from "../../firebase/firebase";
 
 export async function createHoliday(data: { date: string; motivo: string }) {
   return await addDoc(collection(db, "holidays"), data);

@@ -1,10 +1,15 @@
 import * as admin from "firebase-admin";
 
 if (!admin.apps.length) {
-  const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY as string);
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-  });
+  try {
+  
+    admin.initializeApp({
+      credential: admin.credential.cert('src/lib/firebase/schedules.json'),
+    });
+  } catch (error) {
+    console.error('Error initializing Firebase Admin:', error);
+    throw error;
+  }
 }
 
 export const adminDb = admin.firestore();
