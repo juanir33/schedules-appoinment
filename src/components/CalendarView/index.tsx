@@ -2,8 +2,9 @@ import { Calendar, momentLocalizer } from "react-big-calendar";
 import { parseISO } from "date-fns";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import { Reservation } from "@/src/types/models.type";
+import moment from "moment";
 
-const localizer = momentLocalizer(require("moment"));
+const localizer = momentLocalizer(moment);
 
 type Props = {
   reservas: Reservation[];

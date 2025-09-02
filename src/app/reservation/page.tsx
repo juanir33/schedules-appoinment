@@ -40,7 +40,7 @@ export default function Reservas() {
   );
 
   const slots = useMemo(() => {
-    const bloqueos = reservas.map(r => ({ inicioUtc: new Date(r.startISO), finUtc: new Date(r.endISO) }));
+    const bloqueos = reservas.map(r => ({ startUtc: new Date(r.startISO), endUtc: new Date(r.endISO) }));
     const dur = selectedService?.durationMin ?? 60;
     const localDateKey = dayISO.split('T')[0];
     return generateSlotsZoned({
@@ -63,9 +63,9 @@ export default function Reservas() {
     setSubmitMessage('');
     try {
       await createReservationApi({
-        cliente: data.client,
-        servicioId: data.serviceId,
-        inicioISO: data.startISO,
+        customer: data.client,
+        serviceId: data.serviceId,
+        startISO: data.startISO,
       });
       if (user) setReservas(await listMyReservations(user.uid));
       setSubmitMessage('¡Reserva creada exitosamente!');
@@ -175,19 +175,19 @@ export default function Reservas() {
                       </div>
                     ) : (
                       slots.map(s => {
-                        const isSelected = watch("startISO") === s.inicioUtcISO;
+                        const isSelected = watch("startISO") === s.startUtcISO;
                         return (
                           <button
                             type="button"
-                            key={s.inicioUtcISO}
-                            onClick={() => setValue("startISO", s.inicioUtcISO)}
+                            key={s.startUtcISO}
+                            onClick={() => setValue("startISO", s.startUtcISO)}
                             className={`p-3 rounded-lg border-2 transition-all duration-200 font-medium ${
                               isSelected
                                 ? 'border-amber-500 bg-gradient-to-r from-amber-400 to-rose-400 text-white shadow-lg'
                                 : 'border-gray-200 bg-white hover:border-amber-300 hover:shadow-md text-gray-700'
                             }`}
                           >
-                            {s.inicioLocal.split('T')[1].substring(0, 5)}
+                            {s.startLocal.split('T')[1].substring(0, 5)}
                           </button>
                         );
                       })

@@ -17,11 +17,11 @@ export async function POST(request: Request) {
   const calendar = google.calendar({ version: "v3", auth: oAuth2Client });
 
   await calendar.events.insert({
-    
+    calendarId: 'primary',
     requestBody: {
       summary: `${service} - ${client}`,
-      start: { dateTime: reservationDate },
-      end: { dateTime: new Date(new Date(reservationDate).getTime() + 60 * 60 * 1000) },
+      start: { dateTime: new Date(reservationDate).toISOString() },
+      end: { dateTime: new Date(new Date(reservationDate).getTime() + 60 * 60 * 1000).toISOString() },
     },
   });
 

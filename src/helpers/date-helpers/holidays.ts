@@ -1,5 +1,5 @@
 import { getDocs, collection, query, where } from "firebase/firestore";
-import { db } from "./firebase";
+import { db } from "@/src/lib/firebase/firebase";
 
 // holidays: { date: "YYYY-MM-DD", motivo: string }
 export async function getHolidaySetForMonth(year: number, month: number) {

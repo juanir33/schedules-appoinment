@@ -1,7 +1,14 @@
-import { NextApiRequest, NextApiResponse } from "next";
-import { adminAuth, adminDb } from "../../../lib/firebaseAdmin";
+import { NextRequest, NextResponse } from "next/server";
+import { adminAuth, adminDb } from "@/src/lib/firebase/firebaseAdmin";
 import { Timestamp } from "firebase-admin/firestore";
-import { localStringToUtc, utcToLocalString } from "../../../lib/time";
+import { localStringToUtc } from "@/src/helpers/time";
+
+interface Settings {
+  businessTimeZone: string;
+  openHour: number;
+  closeHour: number;
+  offDays: number[];
+}
 
 async function isHolidayLocal(localDateKey: string) {
   const snap = await adminDb.collection("holidays").where("date", "==", localDateKey).get();
@@ -19,25 +26,24 @@ function isOffDayLocal(localDateKey: string, tz: string, offDays: number[]) {
   return offDays.includes(n);
 }
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== "POST") return res.status(405).end();
-
+export async function POST(req: NextRequest) {
   try {
-    const token = req.headers.authorization?.replace("Bearer ", "");
-    if (!token) return res.status(401).json({ error: "No auth" });
+    const token = req.headers.get("authorization")?.replace("Bearer ", "");
+    if (!token) return NextResponse.json({ error: "No auth" }, { status: 401 });
     const decoded = await adminAuth.verifyIdToken(token);
     const userId = decoded.uid;
 
-    const { cliente, servicioId, inicioLocal, tz } = req.body as {
-      cliente: string; servicioId: string; inicioLocal: string; tz: string;
+    const body = await req.json();
+    const { customer, serviceId, startLocal, tz } = body as {
+      customer: string; serviceId: string; startLocal: string; tz: string;
     };
-    if (!cliente || !servicioId || !inicioLocal || !tz) {
-      return res.status(400).json({ error: "Campos faltantes" });
+    if (!customer || !serviceId || !startLocal || !tz) {
+      return NextResponse.json({ error: "Campos faltantes" }, { status: 400 });
     }
 
     // Settings
     const settingsSnap = await adminDb.collection("settings").limit(1).get();
-    const settings = settingsSnap.docs[0].data() as any;
+    const settings = settingsSnap.docs[0].data() as Settings;
     const businessTz = settings.businessTimeZone as string;
     const openHour = settings.openHour as number;
     const closeHour = settings.closeHour as number;
@@ -47,48 +53,49 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       // opcional: obligar a usar tz del negocio
     }
 
-    const inicioUtc = localStringToUtc(inicioLocal, businessTz);
+    const startUtc = localStringToUtc(startLocal, businessTz);
 
     // Cargar servicio y calcular fin
-    const serviceDoc = await adminDb.collection("services").doc(servicioId).get();
-    if (!serviceDoc.exists) return res.status(400).json({ error: "Servicio no existe" });
-    const service = serviceDoc.data() as { nombre: string; duracionMin: number; activo: boolean };
-    if (!service.activo) return res.status(400).json({ error: "Servicio inactivo" });
+    const serviceDoc = await adminDb.collection("services").doc(serviceId).get();
+    if (!serviceDoc.exists) return NextResponse.json({ error: "Servicio no existe" }, { status: 400 });
+    const service = serviceDoc.data() as { name: string; durationMin: number; active: boolean };
+    if (!service.active) return NextResponse.json({ error: "Servicio inactivo" }, { status: 400 });
 
-    const finUtc = new Date(inicioUtc.getTime() + service.duracionMin * 60 * 1000);
+    const endUtc = new Date(new Date(startUtc).getTime() + service.durationMin * 60 * 1000);
 
     // Validaciones locales: offDays/feriados/horario
-    const localDateKey = inicioLocal.slice(0, 10); // YYYY-MM-DD
-    if (await isHolidayLocal(localDateKey)) return res.status(400).json({ error: "Feriado / día bloqueado" });
-    if (isOffDayLocal(localDateKey, businessTz, offDays)) return res.status(400).json({ error: "Día no laborable" });
+    const localDateKey = startLocal.slice(0, 10); // YYYY-MM-DD
+    if (await isHolidayLocal(localDateKey)) return NextResponse.json({ error: "Feriado / día bloqueado" }, { status: 400 });
+    if (isOffDayLocal(localDateKey, businessTz, offDays)) return NextResponse.json({ error: "Día no laborable" }, { status: 400 });
 
-    const localStartHM = parseInt(inicioLocal.slice(11,13),10) * 60 + parseInt(inicioLocal.slice(14,16),10);
-    if (localStartHM < openHour*60 || localStartHM + service.duracionMin > closeHour*60) {
-      return res.status(400).json({ error: "Fuera de horario" });
+    const localStartHM = parseInt(startLocal.slice(11,13),10) * 60 + parseInt(startLocal.slice(14,16),10);
+    if (localStartHM < openHour*60 || localStartHM + service.durationMin > closeHour*60) {
+      return NextResponse.json({ error: "Fuera de horario" }, { status: 400 });
     }
 
     // Antisolapado (UTC)
     const q = await adminDb.collection("reservations")
-      .where("inicio", "<", Timestamp.fromDate(finUtc))
-      .where("fin", ">", Timestamp.fromDate(inicioUtc))
+      .where("start", "<", Timestamp.fromDate(endUtc))
+      .where("end", ">", Timestamp.fromDate(new Date(startUtc)))
       .get();
-    if (!q.empty) return res.status(400).json({ error: "Slot no disponible" });
+    if (!q.empty) return NextResponse.json({ error: "Slot no disponible" }, { status: 400 });
 
     // Crear reserva
     const ref = await adminDb.collection("reservations").add({
       userId,
-      cliente,
-      servicioId,
-      servicioNombre: service.nombre,
-      inicio: Timestamp.fromDate(inicioUtc),
-      fin: Timestamp.fromDate(finUtc),
+      customer,
+      serviceId,
+      serviceName: service.name,
+      start: Timestamp.fromDate(new Date(startUtc)),
+      end: Timestamp.fromDate(endUtc),
       tz: businessTz,
-      estado: "pendiente",
+      status: "pending",
       createdAt: Timestamp.now(),
     });
 
-    res.status(200).json({ id: ref.id });
-  } catch (e: any) {
-    res.status(400).json({ error: e.message || "Error" });
+    return NextResponse.json({ id: ref.id }, { status: 200 });
+  } catch (e: unknown) {
+    const errorMessage = e instanceof Error ? e.message : "Error";
+    return NextResponse.json({ error: errorMessage }, { status: 400 });
   }
 }

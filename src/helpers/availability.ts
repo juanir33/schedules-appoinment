@@ -2,8 +2,8 @@
 import { format } from "date-fns";
 import { localStringToUtc, addMinutesLocal, rangesOverlap } from "./time";
 
-export type Slot = { inicioUtcISO: string; finUtcISO: string; inicioLocal: string; finLocal: string };
-export type BlockUtc = { inicioUtc: Date; finUtc: Date };
+export type Slot = { startUtcISO: string; endUtcISO: string; startLocal: string; endLocal: string };
+export type BlockUtc = { startUtc: Date; endUtc: Date };
 
 export function isOffDay(localDateKey: string, tz: string, offDays: number[]) {
   // Tomamos las 12:00 local para obtener el día de semana estable
@@ -49,22 +49,22 @@ export function generateSlotsZoned(params: {
   let cursorHM = openHour * 60;
 
   while (cursorHM + durMin <= endLocalHM) {
-    const inicioLocal = cursorLocal;
-    const finLocal = addMinutesLocal(inicioLocal, durMin, tz);
+    const startLocal = cursorLocal;
+    const endLocal = addMinutesLocal(startLocal, durMin, tz);
 
-    const inicioUtcISO = localStringToUtc(inicioLocal, tz);
-    const finUtcISO = localStringToUtc(finLocal, tz);
-    const inicioUtc = new Date(inicioUtcISO);
-    const finUtc = new Date(finUtcISO);
+    const startUtcISO = localStringToUtc(startLocal, tz);
+    const endUtcISO = localStringToUtc(endLocal, tz);
+    const startUtc = new Date(startUtcISO);
+    const endUtc = new Date(endUtcISO);
 
     // descartar si solapa con bloqueos en UTC
-    const overlap = blocksUtc.some(b => rangesOverlap(inicioUtc, finUtc, b.inicioUtc, b.finUtc));
+    const overlap = blocksUtc.some(b => rangesOverlap(startUtc, endUtc, b.startUtc, b.endUtc));
     if (!overlap) {
       slots.push({
-        inicioUtcISO,
-        finUtcISO,
-        inicioLocal,
-        finLocal,
+        startUtcISO,
+        endUtcISO,
+        startLocal,
+        endLocal,
       });
     }
 

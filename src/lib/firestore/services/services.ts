@@ -13,7 +13,7 @@ export async function createService(data: Omit<Service, "id">) {
 }
 
 export async function listServices(onlyActive = false) {
-  const q = onlyActive ? query(col, where("activo", "==", true)) : col;
+  const q = onlyActive ? query(col, where("active", "==", true)) : col;
   const snap = await getDocs(q);
   return snap.docs.map(d => ({ id: d.id, ...(d.data() as Omit<Service, "id">) }));
 }

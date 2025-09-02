@@ -20,15 +20,13 @@ export default function CalendarioAdmin() {
         return {
           id: d.id,
           userId: data.userId || '',
-          customer: data.client || data.customer || '',
+          customer: data.customer || '',
           serviceId: data.serviceId || '',
           serviceName: data.serviceName || '',
-          startISO: data.startISO || '',
-          endISO: data.endISO || data.startISO || '',
+          startISO: data.start?.toDate().toISOString() || data.startISO || '',
+          endISO: data.end?.toDate().toISOString() || data.endISO || data.startISO || '',
           status: data.status,
           googleEventId: data.googleEventId,
-          inicio: data.inicio?.toDate().toISOString() || data.startISO,
-          fin: data.fin?.toDate().toISOString() || data.endISO || data.startISO,
         };
       });
       setReservas(items);

@@ -1,5 +1,6 @@
-import type { NextApiRequest, NextApiResponse } from "next";
-import { adminAuth, adminDb } from "../../../lib/firebaseAdmin";
+import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
+import { adminAuth, adminDb } from "@/src/lib/firebase/firebaseAdmin";
 import { google } from "googleapis";
 import { Timestamp } from "firebase-admin/firestore";
 
@@ -11,30 +12,29 @@ function addMinutes(date: Date, minutes: number) {
   return new Date(date.getTime() + minutes * 60 * 1000);
 }
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== "POST") return res.status(405).end();
-
+export async function POST(req: NextRequest) {
   try {
-    const authHeader = req.headers.authorization || "";
+    const authHeader = req.headers.get("authorization") || "";
     const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
-    if (!token) return res.status(401).json({ error: "No auth token" });
+    if (!token) return NextResponse.json({ error: "No auth token" }, { status: 401 });
 
     const decoded = await adminAuth.verifyIdToken(token);
     const userId = decoded.uid;
 
-    const { cliente, servicioId, inicioISO } = req.body as {
-      cliente: string; servicioId: string; inicioISO: string;
+    const body = await req.json();
+    const { customer, serviceId, startISO } = body as {
+      customer: string; serviceId: string; startISO: string;
     };
-    if (!cliente || !servicioId || !inicioISO) return res.status(400).json({ error: "Missing fields" });
+    if (!customer || !serviceId || !startISO) return NextResponse.json({ error: "Missing fields" }, { status: 400 });
 
     // Cargar servicio para obtener duración y nombre
-    const serviceSnap = await adminDb.collection("services").doc(servicioId).get();
-    if (!serviceSnap.exists) return res.status(400).json({ error: "Servicio no existe" });
-    const serviceData = serviceSnap.data() as { nombre: string; duracionMin: number; activo: boolean };
-    if (!serviceData.activo) return res.status(400).json({ error: "Servicio inactivo" });
+    const serviceSnap = await adminDb.collection("services").doc(serviceId).get();
+    if (!serviceSnap.exists) return NextResponse.json({ error: "Servicio no existe" }, { status: 400 });
+    const serviceData = serviceSnap.data() as { name: string; durationMin: number; active: boolean };
+    if (!serviceData.active) return NextResponse.json({ error: "Servicio inactivo" }, { status: 400 });
 
-    const inicio = new Date(inicioISO);
-    const fin = addMinutes(inicio, serviceData.duracionMin);
+    const start = new Date(startISO);
+    const end = addMinutes(start, serviceData.durationMin);
 
     const reservationsCol = adminDb.collection("reservations");
 
@@ -43,8 +43,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     await adminDb.runTransaction(async (tx) => {
       const overlapQuery = await tx.get(
         reservationsCol
-          .where("inicio", "<", Timestamp.fromDate(fin))
-          .where("fin", ">", Timestamp.fromDate(inicio))
+          .where("start", "<", Timestamp.fromDate(end))
+          .where("end", ">", Timestamp.fromDate(start))
       );
 
       if (!overlapQuery.empty) {
@@ -54,12 +54,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const ref = reservationsCol.doc();
       tx.set(ref, {
         userId,
-        cliente,
-        servicioId,
-        servicioNombre: serviceData.nombre,
-        inicio: Timestamp.fromDate(inicio),
-        fin: Timestamp.fromDate(fin),
-        estado: "pendiente",
+        customer,
+        serviceId,
+        serviceName: serviceData.name,
+        start: Timestamp.fromDate(start),
+        end: Timestamp.fromDate(end),
+        status: "pending",
         createdAt: Timestamp.now(),
       });
       createdId = ref.id;
@@ -77,19 +77,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const event = await calendar.events.insert({
       calendarId: process.env.GOOGLE_CALENDAR_ID || "primary",
       requestBody: {
-        summary: `${serviceData.nombre} - ${cliente}`,
-        start: { dateTime: toISO(inicio) },
-        end: { dateTime: toISO(fin) },
+        summary: `${serviceData.name} - ${customer}`,
+        start: { dateTime: toISO(start) },
+        end: { dateTime: toISO(end) },
       },
     });
 
     // Guardar eventId en la reserva
-    await reservationsCol.doc(createdId).update({ googleEventId: event.data.id, estado: "confirmada" });
+    await reservationsCol.doc(createdId).update({ googleEventId: event.data.id, status: "confirmed" });
 
-    res.status(200).json({ id: createdId, googleEventId: event.data.id });
-  } catch (err: any) {
+    return NextResponse.json({ id: createdId, googleEventId: event.data.id }, { status: 200 });
+  } catch (err: unknown) {
     // Si falló Calendar, podrías revertir la reserva o marcar estado
     console.error(err);
-    res.status(400).json({ error: err.message || "Error creando reserva" });
+    const errorMessage = err instanceof Error ? err.message : "Error creando reserva";
+    return NextResponse.json({ error: errorMessage }, { status: 400 });
   }
 }
