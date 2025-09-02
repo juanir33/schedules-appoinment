@@ -5,6 +5,7 @@ import { useAuth } from "@/src/context/auth/AuthContext.context";
 import { generateSlotsZoned } from "@/src/helpers/availability";
 import { createReservationApi, listMyReservations } from "@/src/lib/firestore";
 import { listServices } from "@/src/lib/firestore/services/services";
+import { listHolidays, listClosures } from "@/src/lib/firestore/adminBlock/adminBlocks";
 import { reservationSchema } from "@/src/lib/validations/validation";
 import { Service, Reservation } from "@/src/types/models.type";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -22,12 +23,16 @@ export default function Reservas() {
   const [services, setServices] = useState<Service[]>([]);
   const [dayISO, setDayISO] = useState(startOfDay(new Date()).toISOString());
   const [reservas, setReservas] = useState<Reservation[]>([]);
+  const [holidays, setHolidays] = useState<{date: string; motivo: string}[]>([]);
+  const [closures, setClosures] = useState<{startLocal: string; endLocal: string; motivo: string}[]>([]);
   const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(reservationSchema),
   });
 
   useEffect(() => {
     listServices(true).then(setServices);
+    listHolidays().then(setHolidays);
+    listClosures().then(setClosures);
   }, []);
 
   useEffect(() => {
@@ -36,13 +41,26 @@ export default function Reservas() {
 
   const selectedService = useMemo(
     () => services.find(s => s.id === watch("serviceId")),
-    [services, watch]
+    [services, watch("serviceId")]
   );
 
   const slots = useMemo(() => {
     const bloqueos = reservas.map(r => ({ startUtc: new Date(r.startISO), endUtc: new Date(r.endISO) }));
+    
+    // Agregar cierres temporales como bloqueos
+    const cierresBloqueos = closures.map(c => ({
+      startUtc: new Date(c.startLocal.replace('T', ' ') + ' GMT-0300'),
+      endUtc: new Date(c.endLocal.replace('T', ' ') + ' GMT-0300')
+    }));
+    
+    const todosBloqueos = [...bloqueos, ...cierresBloqueos];
+    
     const dur = selectedService?.durationMin ?? 60;
     const localDateKey = dayISO.split('T')[0];
+    
+    // Crear set de feriados
+    const holidaySet = new Set(holidays.map(h => h.date));
+    
     return generateSlotsZoned({
       localDateKey,
       tz: 'America/Argentina/Buenos_Aires',
@@ -50,9 +68,11 @@ export default function Reservas() {
       closeHour: 18,
       durMin: dur,
       stepMin: 15,
-      blocksUtc: bloqueos
+      blocksUtc: todosBloqueos,
+      holidaySet
     });
-  }, [reservas, selectedService, dayISO]);
+  }, [reservas, selectedService, dayISO, holidays, closures]);
+  console.log("🚀 ~ Reservas ~ slots:", slots)
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState('');

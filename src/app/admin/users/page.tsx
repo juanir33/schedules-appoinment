@@ -256,14 +256,7 @@ export default function UsersAdmin() {
                 <span className="w-2 h-2 bg-amber-500 rounded-full mt-2 flex-shrink-0"></span>
                 Solo los administradores pueden gestionar roles de otros usuarios.
               </p>
-              <p className="flex items-start gap-2">
-                <span className="w-2 h-2 bg-amber-500 rounded-full mt-2 flex-shrink-0"></span>
-                Los custom claims se almacenan en Firebase Authentication.
-              </p>
-              <p className="flex items-start gap-2">
-                <span className="w-2 h-2 bg-amber-500 rounded-full mt-2 flex-shrink-0"></span>
-                Asegúrate de tener las variables de entorno configuradas correctamente.
-              </p>
+              
             </div>
           </div>
         </div>

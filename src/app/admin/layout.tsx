@@ -4,7 +4,7 @@ import LogoutButton from "@components/LogoutButton";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { Crown, Home, Calendar, Ban, Settings, Users, ArrowLeft, Menu, X } from "lucide-react";
+import { Crown, Home, Calendar, Ban, Settings, Users, ArrowLeft, Menu, X, Cog } from "lucide-react";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -26,7 +26,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-rose-50">
         {/* Navbar elegante */}
         <header className="bg-white/80 backdrop-filter backdrop-blur-lg border-b border-amber-200/50 shadow-soft sticky top-0 z-50">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="max-w-5/6 mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between h-16">
               {/* Logo y título */}
               <div className="flex items-center space-x-2 sm:space-x-4">
@@ -42,8 +42,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               </div>
 
               {/* Navegación principal - Desktop */}
-              <nav className="hidden lg:flex items-center space-x-1">
-                <Link href="/admin" className={`nav-link group ${isActive('/admin') ? 'nav-link-active' : ''}`}>
+              <nav className="hidden lg:flex items-center space-x-1 gap-2 ">
+                <Link href="/admin" className={`nav-link mx-1.5 group ${isActive('/admin') ? 'nav-link-active' : ''}`}>
                   <Home className="w-4 h-4 text-amber-600 group-hover:text-amber-700" />
                   <span>Inicio</span>
                 </Link>
@@ -62,6 +62,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 <Link href="/admin/users" className={`nav-link group ${isActive('/admin/users') ? 'nav-link-active' : ''}`}>
                   <Users className="w-4 h-4 text-purple-600 group-hover:text-purple-700" />
                   <span>Usuarios</span>
+                </Link>
+                <Link href="/admin/settings" className={`nav-link group ${isActive('/admin/settings') ? 'nav-link-active' : ''}`}>
+                  <Cog className="w-4 h-4 text-gray-600 group-hover:text-gray-700" />
+                  <span>Configuración</span>
                 </Link>
               </nav>
 
@@ -138,6 +142,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   >
                     <Users className="w-5 h-5 text-purple-600" />
                     <span>Usuarios</span>
+                  </Link>
+                  <Link 
+                    href="/admin/settings" 
+                    className={`mobile-nav-link ${isActive('/admin/settings') ? 'mobile-nav-link-active' : ''}`}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <Cog className="w-5 h-5 text-gray-600" />
+                    <span>Configuración</span>
                   </Link>
                   <div className="pt-2 border-t border-gray-200">
                     <div className="px-3">

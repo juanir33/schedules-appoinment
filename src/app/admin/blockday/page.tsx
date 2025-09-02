@@ -10,12 +10,16 @@ import {
   createHoliday, listHolidays, deleteHoliday,
   createClosure, listClosures, deleteClosure,
   Holiday, Closure
-} from "@/src/lib/adminBlocks";
-import { Ban, Calendar, Clock, Plus, Trash2, CalendarX, XCircle } from "lucide-react";
+} from "@/src/lib/firestore/adminBlock/adminBlocks";
+import { Ban, Calendar, Clock, Plus, Trash2, CalendarX, XCircle, Loader2 } from "lucide-react";
 
 export default function BloqueosAdmin() {
   const [holidays, setHolidays] = useState<Holiday[]>([]);
   const [closures, setClosures] = useState<Closure[]>([]);
+  const [isLoadingHoliday, setIsLoadingHoliday] = useState(false);
+  const [isLoadingClosure, setIsLoadingClosure] = useState(false);
+  const [deletingHoliday, setDeletingHoliday] = useState<string | null>(null);
+  const [deletingClosure, setDeletingClosure] = useState<string | null>(null);
 
   const {
     register: regHoliday, handleSubmit: submitHoliday, reset: resetHoliday,
@@ -33,15 +37,45 @@ export default function BloqueosAdmin() {
   }, []);
 
   const addHoliday = async (data: z.infer<typeof holidaySchema>) => {
-    await createHoliday(data);
-    setHolidays(await listHolidays());
-    resetHoliday();
+    setIsLoadingHoliday(true);
+    try {
+      await createHoliday(data);
+      setHolidays(await listHolidays());
+      resetHoliday();
+    } finally {
+      setIsLoadingHoliday(false);
+    }
   };
 
   const addClosure = async (data: z.infer<typeof closureSchema>) => {
-    await createClosure(data);
-    setClosures(await listClosures());
-    resetClosure();
+    setIsLoadingClosure(true);
+    try {
+      await createClosure(data);
+      setClosures(await listClosures());
+      resetClosure();
+    } finally {
+      setIsLoadingClosure(false);
+    }
+  };
+
+  const handleDeleteHoliday = async (id: string) => {
+    setDeletingHoliday(id);
+    try {
+      await deleteHoliday(id);
+      setHolidays(await listHolidays());
+    } finally {
+      setDeletingHoliday(null);
+    }
+  };
+
+  const handleDeleteClosure = async (id: string) => {
+    setDeletingClosure(id);
+    try {
+      await deleteClosure(id);
+      setClosures(await listClosures());
+    } finally {
+      setDeletingClosure(null);
+    }
   };
 
   return (
@@ -72,15 +106,15 @@ export default function BloqueosAdmin() {
                 </div>
               </div>
 
-              <form onSubmit={submitHoliday(addHoliday)} className="space-y-6 mb-6">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-3">
+              <form onSubmit={submitHoliday(addHoliday)} className="space-y-6">
+                <div className="space-y-2">
+                  <label className="block text-sm font-semibold text-gray-700">
                     Fecha del feriado
                   </label>
                   <input
                     type="date"
                     {...regHoliday("date")}
-                    className="input-elegant"
+                    className="w-full input-elegant"
                   />
                   {errHoliday.date && (
                     <p className="mt-2 text-sm text-red-600 flex items-center gap-2">
@@ -90,14 +124,14 @@ export default function BloqueosAdmin() {
                   )}
                 </div>
 
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-3">
+                <div className="space-y-2">
+                  <label className="block text-sm font-semibold text-gray-700">
                     Motivo del feriado
                   </label>
                   <input
                     placeholder="Ej: Día de la Independencia"
                     {...regHoliday("motivo")}
-                    className="input-elegant"
+                    className="w-full input-elegant"
                   />
                   {errHoliday.motivo && (
                     <p className="mt-2 text-sm text-red-600 flex items-center gap-2">
@@ -109,14 +143,19 @@ export default function BloqueosAdmin() {
 
                 <button
                   type="submit"
-                  className="w-full btn-primary bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 flex items-center justify-center gap-2"
+                  disabled={isLoadingHoliday}
+                  className="w-full btn-primary bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
-                  <Plus className="w-5 h-5" />
-                  Agregar Feriado
+                  {isLoadingHoliday ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <Plus className="w-5 h-5" />
+                  )}
+                  {isLoadingHoliday ? 'Agregando...' : 'Agregar Feriado'}
                 </button>
               </form>
 
-              <div className="space-y-3 max-h-64 overflow-y-auto">
+              <div className="space-y-3 max-h-64 overflow-y-auto mt-4">
                 {holidays.length === 0 ? (
                   <div className="text-center py-8 text-gray-500">
                     <Calendar className="w-12 h-12 mx-auto mb-4 opacity-50" />
@@ -139,11 +178,16 @@ export default function BloqueosAdmin() {
                           </p>
                         </div>
                         <button
-                          onClick={() => deleteHoliday(h.id).then(() => listHolidays().then(setHolidays))}
-                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          onClick={() => handleDeleteHoliday(h.id)}
+                          disabled={deletingHoliday === h.id}
+                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                           title="Eliminar feriado"
                         >
-                          <Trash2 className="w-5 h-5" />
+                          {deletingHoliday === h.id ? (
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                          ) : (
+                            <Trash2 className="w-5 h-5" />
+                          )}
                         </button>
                       </div>
                     </div>
@@ -164,16 +208,16 @@ export default function BloqueosAdmin() {
                 </div>
               </div>
 
-              <form onSubmit={submitClosure(addClosure)} className="space-y-6 mb-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-3">
+              <form onSubmit={submitClosure(addClosure)} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-gray-700">
                       Fecha y hora de inicio
                     </label>
                     <input
                       type="datetime-local"
                       {...regClosure("startLocal")}
-                      className="input-elegant"
+                      className="w-full input-elegant"
                     />
                     {errClosure.startLocal && (
                       <p className="mt-2 text-sm text-red-600 flex items-center gap-2">
@@ -183,14 +227,14 @@ export default function BloqueosAdmin() {
                     )}
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-3">
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-gray-700">
                       Fecha y hora de fin
                     </label>
                     <input
                       type="datetime-local"
                       {...regClosure("endLocal")}
-                      className="input-elegant"
+                      className="w-full input-elegant"
                     />
                     {errClosure.endLocal && (
                       <p className="mt-2 text-sm text-red-600 flex items-center gap-2">
@@ -201,14 +245,14 @@ export default function BloqueosAdmin() {
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-3">
+                <div className="space-y-2">
+                  <label className="block text-sm font-semibold text-gray-700">
                     Motivo del cierre
                   </label>
                   <input
                     placeholder="Ej: Mantenimiento del local"
                     {...regClosure("motivo")}
-                    className="input-elegant"
+                    className="w-full input-elegant"
                   />
                   {errClosure.motivo && (
                     <p className="mt-2 text-sm text-red-600 flex items-center gap-2">
@@ -220,14 +264,19 @@ export default function BloqueosAdmin() {
 
                 <button
                   type="submit"
-                  className="w-full btn-primary bg-gradient-to-r from-purple-500 to-violet-600 hover:from-purple-600 hover:to-violet-700 flex items-center justify-center gap-2"
+                  disabled={isLoadingClosure}
+                  className="w-full btn-primary bg-gradient-to-r from-purple-500 to-violet-600 hover:from-purple-600 hover:to-violet-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
-                  <Plus className="w-5 h-5" />
-                  Agregar Cierre
+                  {isLoadingClosure ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <Plus className="w-5 h-5" />
+                  )}
+                  {isLoadingClosure ? 'Agregando...' : 'Agregar Cierre'}
                 </button>
               </form>
 
-              <div className="space-y-3 max-h-64 overflow-y-auto">
+              <div className="space-y-3 max-h-64 overflow-y-auto mt-4">
                 {closures.length === 0 ? (
                   <div className="text-center py-8 text-gray-500">
                     <CalendarX className="w-12 h-12 mx-auto mb-4 opacity-50" />
@@ -251,11 +300,16 @@ export default function BloqueosAdmin() {
                           </div>
                         </div>
                         <button
-                          onClick={() => deleteClosure(c.id).then(() => listClosures().then(setClosures))}
-                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          onClick={() => handleDeleteClosure(c.id)}
+                          disabled={deletingClosure === c.id}
+                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                           title="Eliminar cierre"
                         >
-                          <Trash2 className="w-5 h-5" />
+                          {deletingClosure === c.id ? (
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                          ) : (
+                            <Trash2 className="w-5 h-5" />
+                          )}
                         </button>
                       </div>
                     </div>

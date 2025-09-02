@@ -1,8 +1,8 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { adminAuth, adminDb } from "@/src/lib/firebase/firebaseAdmin";
-import { google } from "googleapis";
 import { Timestamp } from "firebase-admin/firestore";
+import { createCalendarService } from "@/src/lib/services/calendarService";
 
 function toISO(d: Date | string) {
   return (typeof d === "string" ? new Date(d) : d).toISOString();
@@ -65,28 +65,33 @@ export async function POST(req: NextRequest) {
       createdId = ref.id;
     });
 
-    // Crear evento en Google Calendar (cuenta del negocio)
-    const oAuth2Client = new google.auth.OAuth2(
-      process.env.GOOGLE_CLIENT_ID!,
-      process.env.GOOGLE_CLIENT_SECRET!,
-      process.env.GOOGLE_REDIRECT_URI!
-    );
-    oAuth2Client.setCredentials({ refresh_token: process.env.GOOGLE_REFRESH_TOKEN! });
-    const calendar = google.calendar({ version: "v3", auth: oAuth2Client });
-
-    const event = await calendar.events.insert({
-      calendarId: process.env.GOOGLE_CALENDAR_ID || "primary",
-      requestBody: {
+    // Integración con calendario (parametrizable por negocio)
+    // Por ahora usamos un businessId por defecto, pero esto debería venir del contexto del usuario
+    const businessId = "default"; // TODO: Obtener del contexto del usuario/negocio
+    
+    const calendarService = await createCalendarService(businessId);
+    let googleEventId: string | undefined;
+    
+    if (calendarService) {
+      const calendarEvent = await calendarService.createEvent({
         summary: `${serviceData.name} - ${customer}`,
-        start: { dateTime: toISO(start) },
-        end: { dateTime: toISO(end) },
-      },
-    });
+        description: `Reserva de ${serviceData.name} para ${customer}`,
+        startDateTime: toISO(start),
+        endDateTime: toISO(end),
+      });
+      
+      googleEventId = calendarEvent?.id;
+    }
 
-    // Guardar eventId en la reserva
-    await reservationsCol.doc(createdId).update({ googleEventId: event.data.id, status: "confirmed" });
+    // Actualizar la reserva con el eventId si se creó
+    const updateData: { status: string; googleEventId?: string } = { status: "confirmed" };
+    if (googleEventId) {
+      updateData.googleEventId = googleEventId;
+    }
+    
+    await reservationsCol.doc(createdId).update(updateData);
 
-    return NextResponse.json({ id: createdId, googleEventId: event.data.id }, { status: 200 });
+    return NextResponse.json({ id: createdId, googleEventId }, { status: 200 });
   } catch (err: unknown) {
     // Si falló Calendar, podrías revertir la reserva o marcar estado
     console.error(err);

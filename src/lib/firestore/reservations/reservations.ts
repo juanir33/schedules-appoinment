@@ -32,7 +32,7 @@ export async function createReservationApi(body: { customer: string; serviceId: 
   const user = auth.currentUser;
   if (!user) throw new Error("No auth");
   const token = await getIdToken(user, true);
-  const res = await fetch("/api/reservations/create", {
+  const res = await fetch("/api/reservations", {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
     body: JSON.stringify(body),
