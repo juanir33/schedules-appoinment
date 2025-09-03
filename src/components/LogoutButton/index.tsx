@@ -8,9 +8,9 @@ export default function LogoutButton() {
   return (
     <button
       onClick={() => logout()}
-      className="flex items-center space-x-2 px-4 py-2 text-sm font-medium text-gray-700 hover:text-red-700 hover:bg-red-50 rounded-lg transition-all duration-200 ease-in-out border border-gray-200 hover:border-red-200"
+      className="flex items-center space-x-1.5 px-2 py-1.5 text-xs font-medium text-gray-700 hover:text-red-700 hover:bg-red-50 rounded-lg transition-all duration-200 ease-in-out border border-gray-200 hover:border-red-200"
     >
-      <LogOut className="w-4 h-4" />
+      <LogOut className="w-3.5 h-3.5" />
       <span>Cerrar sesión</span>
     </button>
   );

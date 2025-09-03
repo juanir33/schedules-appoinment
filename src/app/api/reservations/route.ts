@@ -12,6 +12,42 @@ function addMinutes(date: Date, minutes: number) {
   return new Date(date.getTime() + minutes * 60 * 1000);
 }
 
+// GET: Obtener todas las reservas (solo para admin)
+export async function GET(req: NextRequest) {
+  try {
+    const authHeader = req.headers.get("authorization") || "";
+    const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
+    if (!token) return NextResponse.json({ error: "No auth token" }, { status: 401 });
+
+    const decoded = await adminAuth.verifyIdToken(token);
+    
+    // Verificar que el usuario tenga permisos de admin
+    if (!decoded.admin) {
+      return NextResponse.json({ error: "Acceso denegado" }, { status: 403 });
+    }
+
+    const reservationsCol = adminDb.collection("reservations");
+    const snapshot = await reservationsCol.orderBy("createdAt", "desc").get();
+    
+    const reservations = snapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        ...data,
+        start: data.start?.toDate?.()?.toISOString() || data.start,
+        end: data.end?.toDate?.()?.toISOString() || data.end,
+        createdAt: data.createdAt?.toDate?.()?.toISOString() || data.createdAt,
+      };
+    });
+
+    return NextResponse.json({ reservations }, { status: 200 });
+  } catch (err: unknown) {
+    console.error("Error obteniendo reservas:", err);
+    const errorMessage = err instanceof Error ? err.message : "Error obteniendo reservas";
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const authHeader = req.headers.get("authorization") || "";

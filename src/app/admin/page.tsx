@@ -1,6 +1,6 @@
 import Link from "next/link";
 import AdminProtected from "@/src/components/AdminProtected";
-import { Calendar, Settings, Ban, Users, Crown, ArrowRight } from "lucide-react";
+import { Calendar, Settings, Ban, Users, Crown, ArrowRight, BarChart3, BookOpen, Cog } from "lucide-react";
 
 export default function AdminHome() {
   return (
@@ -19,7 +19,7 @@ export default function AdminHome() {
           </div>
 
           {/* Admin Cards Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {/* Calendar Card */}
             <Link href="/admin/calendar" className="group">
               <div className="card-elegant p-6 h-full hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
@@ -82,6 +82,57 @@ export default function AdminHome() {
                   <p className="text-gray-600 text-sm mb-4 flex-grow">Gestionar permisos y roles de administrador</p>
                   <div className="flex items-center text-purple-600 group-hover:text-purple-700 transition-colors">
                     <span className="text-sm font-medium">Administrar</span>
+                    <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
+                  </div>
+                </div>
+              </div>
+            </Link>
+
+            {/* Dashboard Card */}
+            <Link href="/admin/dashboard" className="group">
+              <div className="card-elegant p-6 h-full hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+                <div className="flex flex-col items-center text-center">
+                  <div className="p-4 bg-gradient-to-r from-indigo-400 to-blue-500 rounded-full mb-4 group-hover:scale-110 transition-transform">
+                    <BarChart3 className="w-8 h-8 text-white" />
+                  </div>
+                  <h2 className="font-display text-xl font-bold text-gray-900 mb-2">Dashboard</h2>
+                  <p className="text-gray-600 text-sm mb-4 flex-grow">Analytics y métricas del negocio</p>
+                  <div className="flex items-center text-indigo-600 group-hover:text-indigo-700 transition-colors">
+                    <span className="text-sm font-medium">Ver métricas</span>
+                    <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
+                  </div>
+                </div>
+              </div>
+            </Link>
+
+            {/* Reservations Card */}
+            <Link href="/admin/reservations" className="group">
+              <div className="card-elegant p-6 h-full hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+                <div className="flex flex-col items-center text-center">
+                  <div className="p-4 bg-gradient-to-r from-orange-400 to-amber-500 rounded-full mb-4 group-hover:scale-110 transition-transform">
+                    <BookOpen className="w-8 h-8 text-white" />
+                  </div>
+                  <h2 className="font-display text-xl font-bold text-gray-900 mb-2">Reservas</h2>
+                  <p className="text-gray-600 text-sm mb-4 flex-grow">Gestionar todas las reservas del salón</p>
+                  <div className="flex items-center text-orange-600 group-hover:text-orange-700 transition-colors">
+                    <span className="text-sm font-medium">Gestionar</span>
+                    <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
+                  </div>
+                </div>
+              </div>
+            </Link>
+
+            {/* Settings Card */}
+            <Link href="/admin/settings" className="group">
+              <div className="card-elegant p-6 h-full hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+                <div className="flex flex-col items-center text-center">
+                  <div className="p-4 bg-gradient-to-r from-gray-400 to-slate-500 rounded-full mb-4 group-hover:scale-110 transition-transform">
+                    <Cog className="w-8 h-8 text-white" />
+                  </div>
+                  <h2 className="font-display text-xl font-bold text-gray-900 mb-2">Configuración</h2>
+                  <p className="text-gray-600 text-sm mb-4 flex-grow">Ajustes generales del sistema</p>
+                  <div className="flex items-center text-gray-600 group-hover:text-gray-700 transition-colors">
+                    <span className="text-sm font-medium">Configurar</span>
                     <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
                   </div>
                 </div>

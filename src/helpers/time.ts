@@ -9,12 +9,17 @@ export function localStringToUtc(localString: string, tz: string): string {
 }
 
 export function addMinutesLocal(localString: string, minutes: number, tz: string): string {
-  // Añade minutos a una fecha/hora local
+  // Añade minutos a una fecha/hora local manteniendo la zona horaria
   const localDate = parseISO(localString);
-  const utcDate = fromZonedTime(localDate, tz);
-  const newUtcDate = addMinutes(utcDate, minutes);
-  const newLocalDate = toZonedTime(newUtcDate, tz);
-  return newLocalDate.toISOString().slice(0, 19);
+  const newLocalDate = addMinutes(localDate, minutes);
+  // Formatear como string local sin conversión de zona horaria
+  const year = newLocalDate.getFullYear();
+  const month = String(newLocalDate.getMonth() + 1).padStart(2, '0');
+  const day = String(newLocalDate.getDate()).padStart(2, '0');
+  const hours = String(newLocalDate.getHours()).padStart(2, '0');
+  const minutes_str = String(newLocalDate.getMinutes()).padStart(2, '0');
+  const seconds = String(newLocalDate.getSeconds()).padStart(2, '0');
+  return `${year}-${month}-${day}T${hours}:${minutes_str}:${seconds}`;
 }
 
 export function rangesOverlap(
