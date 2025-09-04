@@ -1,6 +1,7 @@
 import { google } from 'googleapis';
-import { CalendarSettings, GoogleCalendarConfig, OutlookCalendarConfig } from '@/src/types/models.type';
+import { CalendarSettings, GoogleCalendarConfig, OutlookCalendarConfig, BusinessSettings } from '@/src/types/models.type';
 import { getCalendarSettingsByBusiness } from '@/src/lib/firestore/calendarSettings/calendarSettings';
+import { getBusinessSettings } from '@/src/lib/firestore/businessSettings/businessSettings';
 
 export interface CalendarEvent {
   summary: string;
@@ -28,6 +29,22 @@ export class CalendarService {
    * Inicializar el servicio cargando la configuración del negocio
    */
   async initialize(): Promise<boolean> {
+    // Primero intentar obtener desde businessSettings.calendarIntegration
+    const businessSettings = await getBusinessSettings(this.businessId);
+    if (businessSettings?.calendarIntegration?.enabled) {
+      this.settings = {
+        id: businessSettings.calendarIntegration.id,
+        businessId: businessSettings.calendarIntegration.businessId,
+        provider: businessSettings.calendarIntegration.provider,
+        enabled: businessSettings.calendarIntegration.enabled,
+        config: businessSettings.calendarIntegration.config,
+        createdAt: businessSettings.calendarIntegration.createdAt,
+        updatedAt: businessSettings.calendarIntegration.updatedAt
+      };
+      return true;
+    }
+    
+    // Fallback: intentar obtener desde calendarSettings (legacy)
     this.settings = await getCalendarSettingsByBusiness(this.businessId);
     return this.settings !== null && this.settings.enabled;
   }
@@ -103,7 +120,19 @@ export class CalendarService {
         config.redirectUri
       );
       
-      oAuth2Client.setCredentials({ refresh_token: config.refreshToken });
+      // Configurar credenciales con access_token y refresh_token
+      const credentials: { access_token?: string; refresh_token?: string; expiry_date?: number } = {};
+      if (config.accessToken) {
+        credentials.access_token = config.accessToken;
+      }
+      if (config.refreshToken) {
+        credentials.refresh_token = config.refreshToken;
+      }
+      if (config.tokenExpiresAt) {
+        credentials.expiry_date = new Date(config.tokenExpiresAt).getTime();
+      }
+      
+      oAuth2Client.setCredentials(credentials);
       const calendar = google.calendar({ version: 'v3', auth: oAuth2Client });
 
       const response = await calendar.events.insert({
@@ -143,7 +172,19 @@ export class CalendarService {
         config.redirectUri
       );
       
-      oAuth2Client.setCredentials({ refresh_token: config.refreshToken });
+      // Configurar credenciales con access_token y refresh_token
+      const credentials: { access_token?: string; refresh_token?: string; expiry_date?: number } = {};
+      if (config.accessToken) {
+        credentials.access_token = config.accessToken;
+      }
+      if (config.refreshToken) {
+        credentials.refresh_token = config.refreshToken;
+      }
+      if (config.tokenExpiresAt) {
+        credentials.expiry_date = new Date(config.tokenExpiresAt).getTime();
+      }
+      
+      oAuth2Client.setCredentials(credentials);
       const calendar = google.calendar({ version: 'v3', auth: oAuth2Client });
 
       const response = await calendar.events.update({
@@ -183,7 +224,19 @@ export class CalendarService {
         config.redirectUri
       );
       
-      oAuth2Client.setCredentials({ refresh_token: config.refreshToken });
+      // Configurar credenciales con access_token y refresh_token
+      const credentials: { access_token?: string; refresh_token?: string; expiry_date?: number } = {};
+      if (config.accessToken) {
+        credentials.access_token = config.accessToken;
+      }
+      if (config.refreshToken) {
+        credentials.refresh_token = config.refreshToken;
+      }
+      if (config.tokenExpiresAt) {
+        credentials.expiry_date = new Date(config.tokenExpiresAt).getTime();
+      }
+      
+      oAuth2Client.setCredentials(credentials);
       const calendar = google.calendar({ version: 'v3', auth: oAuth2Client });
 
       await calendar.events.delete({

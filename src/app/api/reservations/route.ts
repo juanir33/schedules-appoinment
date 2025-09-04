@@ -3,6 +3,8 @@ import { NextResponse } from "next/server";
 import { adminAuth, adminDb } from "@/src/lib/firebase/firebaseAdmin";
 import { Timestamp } from "firebase-admin/firestore";
 import { createEmailCalendarService } from "@/src/lib/services/emailCalendarService";
+import { createCalendarService } from "@/src/lib/services/calendarService";
+import { getBusinessSettings } from "@/src/lib/firestore/businessSettings/businessSettings";
 
 function toISO(d: Date | string) {
   return (typeof d === "string" ? new Date(d) : d).toISOString();
@@ -101,13 +103,40 @@ export async function POST(req: NextRequest) {
       createdId = ref.id;
     });
 
-    // Enviar invitación de calendario si hay email del cliente
-    if (customerEmail) {
+    // Crear evento en Google Calendar si está configurado
+    let googleEventId: string | undefined;
+    try {
+      const calendarService = await createCalendarService('default');
+      if (calendarService) {
+        const businessSettings = await getBusinessSettings('default');
+        const location = businessSettings?.address ? 
+          `${businessSettings.address.street}, ${businessSettings.address.city}` : undefined;
+        
+        const calendarEvent = await calendarService.createEvent({
+          summary: `${serviceData.name} - ${customer}`,
+          description: `Reserva confirmada\n\nCliente: ${customer}\nServicio: ${serviceData.name}\nDuración: ${serviceData.durationMin} minutos${customerEmail ? `\nEmail: ${customerEmail}` : ''}`,
+          startDateTime: toISO(start),
+          endDateTime: toISO(end),
+          attendees: customerEmail ? [customerEmail] : []
+        });
+        
+        if (calendarEvent) {
+          googleEventId = calendarEvent.id;
+          console.log('📅 Google Calendar event created:', calendarEvent.id);
+        }
+      }
+    } catch (calendarError) {
+      console.error('Error creating Google Calendar event:', calendarError);
+      // No fallar la reserva si el calendario falla
+    }
+    
+    // Fallback: Enviar invitación por email si no se pudo crear en Google Calendar
+    if (!googleEventId && customerEmail) {
       try {
-        const calendarService = await createEmailCalendarService('default');
-        if (calendarService) {
-          const businessInfo = calendarService.getBusinessInfo();
-          await calendarService.createCalendarInvite({
+        const emailCalendarService = await createEmailCalendarService('default');
+        if (emailCalendarService) {
+          const businessInfo = emailCalendarService.getBusinessInfo();
+          await emailCalendarService.createCalendarInvite({
             summary: `Cita: ${serviceData.name}`,
             description: `Reserva confirmada para ${customer}\n\nServicio: ${serviceData.name}\nDuración: ${serviceData.durationMin} minutos`,
             startDateTime: toISO(start),
@@ -116,16 +145,19 @@ export async function POST(req: NextRequest) {
             customerEmail,
             customerName: customer
           });
-          console.log('📅 Calendar invitation sent to:', customerEmail);
+          console.log('📅 Email calendar invitation sent to:', customerEmail);
         }
-      } catch (calendarError) {
-        console.error('Error sending calendar invitation:', calendarError);
-        // No fallar la reserva si el calendario falla
+      } catch (emailError) {
+        console.error('Error sending email calendar invitation:', emailError);
       }
     }
 
-    // Actualizar la reserva como confirmada
-    await reservationsCol.doc(createdId).update({ status: "confirmed" });
+    // Actualizar la reserva como confirmada e incluir googleEventId si existe
+    const updateData: { status: string; googleEventId?: string } = { status: "confirmed" };
+    if (googleEventId) {
+      updateData.googleEventId = googleEventId;
+    }
+    await reservationsCol.doc(createdId).update(updateData);
 
     return NextResponse.json({ id: createdId }, { status: 200 });
   } catch (err: unknown) {

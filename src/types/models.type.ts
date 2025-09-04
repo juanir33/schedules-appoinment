@@ -39,8 +39,13 @@ export interface GoogleCalendarConfig {
   clientId: string;
   clientSecret: string;
   refreshToken: string;
+  accessToken?: string; // Token de acceso temporal
+  tokenExpiresAt?: string; // Timestamp de expiración del access token
   calendarId: string;
   redirectUri?: string;
+  // Información adicional del usuario autorizado
+  authorizedEmail?: string;
+  authorizedAt?: string; // Timestamp de cuando se autorizó
 }
 
 export interface OutlookCalendarConfig {

@@ -18,7 +18,9 @@ import {
   Bell, 
   Save,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  Link,
+  Unlink
 } from "lucide-react";
 
 interface FormData {
@@ -82,6 +84,8 @@ export default function ConfiguracionesAdmin() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   const [activeTab, setActiveTab] = useState('general');
+  const [googleCalendarConnected, setGoogleCalendarConnected] = useState(false);
+  const [connectingGoogle, setConnectingGoogle] = useState(false);
 
   const { register, handleSubmit, reset, watch } = useForm<FormData>({
     defaultValues: {
@@ -154,6 +158,12 @@ export default function ConfiguracionesAdmin() {
           notificationSettings: settings.notificationSettings,
           active: settings.active
         });
+        
+        // Verificar si Google Calendar está conectado
+        setGoogleCalendarConnected(
+          settings.calendarIntegration?.provider === 'google' && 
+          settings.calendarIntegration?.enabled === true
+        );
       }
     } catch (error) {
       console.error('Error loading business settings:', error);
@@ -177,11 +187,45 @@ export default function ConfiguracionesAdmin() {
     }
   };
 
+  const connectGoogleCalendar = async () => {
+    try {
+      setConnectingGoogle(true);
+      // Redirigir al endpoint de autorización de Google
+      window.location.href = '/api/auth/google';
+    } catch (error) {
+      console.error('Error connecting to Google Calendar:', error);
+      setMessage({ type: 'error', text: 'Error al conectar con Google Calendar' });
+      setConnectingGoogle(false);
+    }
+  };
+
+  const disconnectGoogleCalendar = async () => {
+    try {
+      setConnectingGoogle(true);
+      // Actualizar configuración del negocio para remover la integración
+      const currentSettings = await getBusinessSettings(BUSINESS_ID);
+      if (currentSettings) {
+        await createOrUpdateBusinessSettings(BUSINESS_ID, {
+          ...currentSettings,
+          calendarIntegration: null
+        });
+        setGoogleCalendarConnected(false);
+        setMessage({ type: 'success', text: 'Google Calendar desconectado exitosamente' });
+      }
+    } catch (error) {
+      console.error('Error disconnecting Google Calendar:', error);
+      setMessage({ type: 'error', text: 'Error al desconectar Google Calendar' });
+    } finally {
+      setConnectingGoogle(false);
+    }
+  };
+
   const tabs = [
     { id: 'general', label: 'General', icon: Building2 },
     { id: 'horarios', label: 'Horarios', icon: Clock },
     { id: 'reservas', label: 'Reservas', icon: Calendar },
-    { id: 'notificaciones', label: 'Notificaciones', icon: Bell }
+    { id: 'notificaciones', label: 'Notificaciones', icon: Bell },
+    { id: 'calendario', label: 'Google Calendar', icon: Link }
   ];
 
   if (loading) {
@@ -376,6 +420,112 @@ export default function ConfiguracionesAdmin() {
                         </div>
                       </div>
                     </div>
+                  </div>
+                )}
+
+                {/* Tab: Google Calendar */}
+                {activeTab === 'calendario' && (
+                  <div className="space-y-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Integración con Google Calendar</h3>
+                    
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                      <div className="flex items-start gap-3">
+                        <Calendar className="w-5 h-5 text-blue-600 mt-0.5" />
+                        <div>
+                          <h4 className="font-medium text-blue-900 mb-1">¿Qué es la integración con Google Calendar?</h4>
+                          <p className="text-sm text-blue-700">
+                            Conecta tu cuenta de Google Calendar para sincronizar automáticamente las reservas confirmadas como eventos en tu calendario personal.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="border border-gray-200 rounded-lg p-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <div>
+                          <h4 className="font-medium text-gray-900">Estado de la conexión</h4>
+                          <p className="text-sm text-gray-600 mt-1">
+                            {googleCalendarConnected 
+                              ? 'Tu cuenta de Google Calendar está conectada y sincronizada.'
+                              : 'No hay ninguna cuenta de Google Calendar conectada.'
+                            }
+                          </p>
+                        </div>
+                        <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium ${
+                          googleCalendarConnected 
+                            ? 'bg-green-100 text-green-800' 
+                            : 'bg-gray-100 text-gray-800'
+                        }`}>
+                          {googleCalendarConnected ? (
+                            <>
+                              <Link className="w-4 h-4" />
+                              Conectado
+                            </>
+                          ) : (
+                            <>
+                              <Unlink className="w-4 h-4" />
+                              Desconectado
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex gap-3">
+                        {googleCalendarConnected ? (
+                          <button
+                            type="button"
+                            onClick={disconnectGoogleCalendar}
+                            disabled={connectingGoogle}
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          >
+                            {connectingGoogle ? (
+                              <>
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                Desconectando...
+                              </>
+                            ) : (
+                              <>
+                                <Unlink className="w-4 h-4" />
+                                Desconectar Google Calendar
+                              </>
+                            )}
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={connectGoogleCalendar}
+                            disabled={connectingGoogle}
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          >
+                            {connectingGoogle ? (
+                              <>
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                Conectando...
+                              </>
+                            ) : (
+                              <>
+                                <Link className="w-4 h-4" />
+                                Conectar Google Calendar
+                              </>
+                            )}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {googleCalendarConnected && (
+                      <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                        <div className="flex items-start gap-3">
+                          <CheckCircle className="w-5 h-5 text-green-600 mt-0.5" />
+                          <div>
+                            <h4 className="font-medium text-green-900 mb-1">Sincronización activa</h4>
+                            <p className="text-sm text-green-700">
+                              Las nuevas reservas confirmadas se crearán automáticamente como eventos en tu Google Calendar.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 
