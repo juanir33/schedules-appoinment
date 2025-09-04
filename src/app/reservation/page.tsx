@@ -39,9 +39,10 @@ export default function Reservas() {
     if (user) listMyReservations(user.uid).then(setReservas);
   }, [user]);
 
+  const serviceId = watch("serviceId");
   const selectedService = useMemo(
-    () => services.find(s => s.id === watch("serviceId")),
-    [services, watch("serviceId")]
+    () => services.find(s => s.id === serviceId),
+    [services, serviceId]
   );
 
   const slots = useMemo(() => {
@@ -97,6 +98,7 @@ export default function Reservas() {
       setValue('startISO', '');
       setValue('customerEmail', '');
     } catch (error) {
+      console.error('Error creating reservation:', error);
       setSubmitMessage('Error al crear la reserva. Intenta nuevamente.');
       setSubmitType('error');
     } finally {

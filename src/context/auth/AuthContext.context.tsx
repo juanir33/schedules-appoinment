@@ -8,7 +8,6 @@ import {
   signOut,
   User,
   sendPasswordResetEmail,
-  Auth,
 } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 import { auth, db } from "@/src/lib/firebase/firebase";

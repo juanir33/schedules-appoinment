@@ -1,9 +1,9 @@
-import { getDocs, collection, query, where } from "firebase/firestore";
+import { getDocs, collection } from "firebase/firestore";
 import { db } from "@/src/lib/firebase/firebase";
 
 // holidays: { date: "YYYY-MM-DD", motivo: string }
-export async function getHolidaySetForMonth(year: number, month: number) {
-  // month 1–12 -> normalízalo si preferís; aquí lo dejamos informativo
+export async function getHolidaySetForMonth() {
+  // Gets all holidays from the collection
   const snap = await getDocs(collection(db, "holidays"));
   const set = new Set<string>();
   snap.docs.forEach(d => {

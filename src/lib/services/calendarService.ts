@@ -1,5 +1,5 @@
 import { google } from 'googleapis';
-import { CalendarSettings, GoogleCalendarConfig, OutlookCalendarConfig, BusinessSettings } from '@/src/types/models.type';
+import { CalendarSettings, GoogleCalendarConfig, OutlookCalendarConfig } from '@/src/types/models.type';
 import { getCalendarSettingsByBusiness } from '@/src/lib/firestore/calendarSettings/calendarSettings';
 import { getBusinessSettings } from '@/src/lib/firestore/businessSettings/businessSettings';
 

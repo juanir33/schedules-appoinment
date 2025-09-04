@@ -1,5 +1,5 @@
 import { addMinutes, parseISO } from "date-fns";
-import { toZonedTime, fromZonedTime } from "date-fns-tz";
+import { fromZonedTime } from "date-fns-tz";
 
 export function localStringToUtc(localString: string, tz: string): string {
   // Convierte una fecha/hora local a UTC
@@ -8,7 +8,7 @@ export function localStringToUtc(localString: string, tz: string): string {
   return utcDate.toISOString();
 }
 
-export function addMinutesLocal(localString: string, minutes: number, tz: string): string {
+export function addMinutesLocal(localString: string, minutes: number): string {
   // Añade minutos a una fecha/hora local manteniendo la zona horaria
   const localDate = parseISO(localString);
   const newLocalDate = addMinutes(localDate, minutes);

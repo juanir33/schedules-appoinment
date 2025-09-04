@@ -1,5 +1,4 @@
 
-import { format } from "date-fns";
 import { localStringToUtc, addMinutesLocal, rangesOverlap } from "./time";
 
 export type Slot = { startUtcISO: string; endUtcISO: string; startLocal: string; endLocal: string };
@@ -40,7 +39,6 @@ export function generateSlotsZoned(params: {
 
   // Construimos horas locales
   const startLocal = `${localDateKey}T${String(openHour).padStart(2, "0")}:00`;
-  const endLocal = `${localDateKey}T${String(closeHour).padStart(2, "0")}:00`;
 
   const slots: Slot[] = [];
   let cursorLocal = startLocal;
@@ -50,7 +48,7 @@ export function generateSlotsZoned(params: {
 
   while (cursorHM + durMin <= endLocalHM) {
     const startLocal = cursorLocal;
-    const endLocal = addMinutesLocal(startLocal, durMin, tz);
+    const endLocal = addMinutesLocal(startLocal, durMin);
 
     const startUtcISO = localStringToUtc(startLocal, tz);
     const endUtcISO = localStringToUtc(endLocal, tz);
@@ -69,7 +67,7 @@ export function generateSlotsZoned(params: {
     }
 
     cursorHM += stepMin;
-    cursorLocal = addMinutesLocal(cursorLocal, stepMin, tz);
+    cursorLocal = addMinutesLocal(cursorLocal, stepMin);
   }
   return slots;
 }

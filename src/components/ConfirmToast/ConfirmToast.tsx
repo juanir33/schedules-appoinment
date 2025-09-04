@@ -94,7 +94,7 @@ export const showConfirmToast = ({
   type = 'warning'
 }: ConfirmToastProps) => {
   return toast.custom(
-    (t) => (
+    () => (
       <ConfirmToast
         message={message}
         onConfirm={onConfirm}

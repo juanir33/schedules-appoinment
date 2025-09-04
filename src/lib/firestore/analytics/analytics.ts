@@ -341,7 +341,10 @@ export async function getCancellationMetrics(dateRange: AnalyticsDateRange): Pro
 /**
  * Función auxiliar para agrupar reservas por período
  */
-function groupReservationsByPeriod(reservations: ReservationData[], period: 'day' | 'week' | 'month') {
+function groupReservationsByPeriod(reservations: ReservationData[], period: 'day'): { date: string; count: number }[];
+function groupReservationsByPeriod(reservations: ReservationData[], period: 'week'): { week: string; count: number }[];
+function groupReservationsByPeriod(reservations: ReservationData[], period: 'month'): { month: string; count: number }[];
+function groupReservationsByPeriod(reservations: ReservationData[], period: 'day' | 'week' | 'month'): { date: string; count: number }[] | { week: string; count: number }[] | { month: string; count: number }[] {
   const groups = new Map<string, number>();
   
   reservations.forEach(reservation => {
@@ -379,13 +382,16 @@ function groupReservationsByPeriod(reservations: ReservationData[], period: 'day
       const aKey = period === 'day' ? a.date as string : period === 'week' ? a.week as string : a.month as string;
       const bKey = period === 'day' ? b.date as string : period === 'week' ? b.week as string : b.month as string;
       return aKey.localeCompare(bKey);
-    }) as any;
+    }) as { date: string; count: number }[] | { week: string; count: number }[] | { month: string; count: number }[];
 }
 
 /**
  * Función auxiliar para agrupar ingresos por período
  */
-function groupRevenueByPeriod(revenueData: (ReservationData & { price: number; date: Date })[], period: 'day' | 'week' | 'month') {
+function groupRevenueByPeriod(revenueData: (ReservationData & { price: number; date: Date })[], period: 'day'): { date: string; revenue: number }[];
+function groupRevenueByPeriod(revenueData: (ReservationData & { price: number; date: Date })[], period: 'week'): { week: string; revenue: number }[];
+function groupRevenueByPeriod(revenueData: (ReservationData & { price: number; date: Date })[], period: 'month'): { month: string; revenue: number }[];
+function groupRevenueByPeriod(revenueData: (ReservationData & { price: number; date: Date })[], period: 'day' | 'week' | 'month'): { date: string; revenue: number }[] | { week: string; revenue: number }[] | { month: string; revenue: number }[] {
   const groups = new Map<string, number>();
   
   revenueData.forEach(item => {
@@ -425,5 +431,5 @@ function groupRevenueByPeriod(revenueData: (ReservationData & { price: number; d
       const aKey = period === 'day' ? a.date as string : period === 'week' ? a.week as string : a.month as string;
       const bKey = period === 'day' ? b.date as string : period === 'week' ? b.week as string : b.month as string;
       return aKey.localeCompare(bKey);
-    }) as any;
+    }) as { date: string; revenue: number }[] | { week: string; revenue: number }[] | { month: string; revenue: number }[];
 }
