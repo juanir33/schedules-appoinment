@@ -1,7 +1,8 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/src/context/auth/AuthContext.context";
-import { Calendar, Clock, User, Mail, Phone, FileText, Download, Filter } from "lucide-react";
+import { Calendar, Clock, User, Mail, Phone, FileText, Download, Filter, CheckCircle } from "lucide-react";
+import { completeReservationApi } from "@/src/lib/firestore/reservations/reservations";
 
 interface Reservation {
   id: string;
@@ -22,6 +23,7 @@ export default function ReservationsPage() {
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
+  const [completingId, setCompletingId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchReservations();
@@ -76,6 +78,8 @@ export default function ReservationsPage() {
         return "bg-yellow-100 text-yellow-800";
       case "cancelled":
         return "bg-red-100 text-red-800";
+      case "completed":
+        return "bg-blue-100 text-blue-800";
       default:
         return "bg-gray-100 text-gray-800";
     }
@@ -89,6 +93,8 @@ export default function ReservationsPage() {
         return "Pendiente";
       case "cancelled":
         return "Cancelada";
+      case "completed":
+        return "Completada";
       default:
         return status;
     }
@@ -127,6 +133,20 @@ export default function ReservationsPage() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  const completeReservation = async (reservationId: string) => {
+    setCompletingId(reservationId);
+    try {
+      await completeReservationApi(reservationId);
+      // Recargar las reservas
+      await fetchReservations();
+    } catch (error) {
+      console.error('Error completando reserva:', error);
+      setError(error instanceof Error ? error.message : 'Error completando la reserva');
+    } finally {
+      setCompletingId(null);
+    }
   };
 
   if (loading) {
@@ -207,13 +227,14 @@ export default function ReservationsPage() {
                 <option value="confirmed">Confirmadas</option>
                 <option value="pending">Pendientes</option>
                 <option value="cancelled">Canceladas</option>
+                <option value="completed">Completadas</option>
               </select>
             </div>
           </div>
         </div>
 
         {/* Estadísticas */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-6">
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <div className="flex items-center">
               <div className="p-2 bg-blue-100 rounded-lg">
@@ -264,6 +285,19 @@ export default function ReservationsPage() {
               </div>
             </div>
           </div>
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <CheckCircle className="w-6 h-6 text-blue-600" />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Completadas</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {reservations.filter(r => r.status === 'completed').length}
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Lista de reservas */}
@@ -293,6 +327,9 @@ export default function ReservationsPage() {
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Creado
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Acciones
                     </th>
                   </tr>
                 </thead>
@@ -342,6 +379,31 @@ export default function ReservationsPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {formatDate(reservation.createdAt)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {reservation.status === "confirmed" && (
+                          <button
+                            onClick={() => completeReservation(reservation.id)}
+                            disabled={completingId === reservation.id}
+                            className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-full shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {completingId === reservation.id ? (
+                              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-1"></div>
+                            ) : (
+                              <CheckCircle className="w-3 h-3 mr-1" />
+                            )}
+                            {completingId === reservation.id ? 'Completando...' : 'Completar'}
+                          </button>
+                        )}
+                        {reservation.status === "completed" && (
+                          <span className="inline-flex items-center px-3 py-1 text-xs font-medium text-blue-800">
+                            <CheckCircle className="w-3 h-3 mr-1" />
+                            Completada
+                          </span>
+                        )}
+                        {(reservation.status === "cancelled" || reservation.status === "pending") && (
+                          <span className="text-xs text-gray-400">-</span>
+                        )}
                       </td>
                     </tr>
                   ))}

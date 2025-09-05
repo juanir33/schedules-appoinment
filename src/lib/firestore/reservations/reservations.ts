@@ -41,6 +41,22 @@ export async function createReservationApi(body: { customer: string; serviceId: 
   return res.json();
 }
 
+export async function completeReservationApi(reservationId: string) {
+  const user = auth.currentUser;
+  if (!user) throw new Error("No auth");
+  const token = await getIdToken(user, true);
+  const res = await fetch("/api/reservations/complete", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ reservationId }),
+  });
+  if (!res.ok) {
+    const errorData = await res.json();
+    throw new Error(errorData.error || "Error completando reserva");
+  }
+  return res.json();
+}
+
 export async function listMyReservations(userId: string) {
   const q = query(collection(db, "reservations"), where("userId", "==", userId));
   const snap = await getDocs(q);
