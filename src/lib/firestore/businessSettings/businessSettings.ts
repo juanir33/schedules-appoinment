@@ -24,6 +24,8 @@ export async function createOrUpdateBusinessSettings(
     email: settings.email || "",
     phone: settings.phone,
     website: settings.website,
+    instagram: settings.instagram,
+    whatsapp: settings.whatsapp,
     address: settings.address || {
       street: "",
       city: "",
@@ -186,6 +188,8 @@ export function getDefaultBusinessSettings(businessId: string, email: string): P
   return {
     name: "Mi Negocio",
     email: email,
+    instagram: "",
+    whatsapp: "",
     timezone: "America/Mexico_City",
     businessHours: {
       monday: { enabled: true, openTime: "09:00", closeTime: "18:00" },

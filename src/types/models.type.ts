@@ -64,6 +64,8 @@ export interface BusinessSettings {
   email: string;
   phone?: string;
   website?: string;
+  instagram?: string;
+  whatsapp?: string;
   
   // Dirección
   address: Address;

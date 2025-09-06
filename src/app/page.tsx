@@ -1,17 +1,29 @@
+'use client'
 import Link from "next/link";
-import { Sparkles, Calendar, Star, ArrowRight, Phone, MapPin, Clock, Mail, Globe } from "lucide-react";
+import { Sparkles, Calendar, Star, ArrowRight, Phone, MapPin, Clock, Mail, Globe, Instagram, MessageCircle, Settings } from "lucide-react";
 import { getBusinessSettings } from "../lib/firestore/businessSettings/businessSettings";
 import { BusinessSettings } from "../types/models.type";
 import { formatBusinessHoursDisplay } from "../helpers/business-hours";
+import { useAuth } from "../context/auth/AuthContext.context";
+import { useEffect, useState } from "react";
+import { BsInstagram, BsWhatsapp } from "react-icons/bs";
 
-export default async function HomePage() {
-  let businessSettings: BusinessSettings | null = null;
+export default function HomePage() {
+  const { isAdmin } = useAuth();
+  const [businessSettings, setBusinessSettings] = useState<BusinessSettings | null>(null);
   
-  try {
-    businessSettings = await getBusinessSettings('default');
-  } catch (error) {
-    console.error('Error fetching business settings:', error);
-  }
+  useEffect(() => {
+    const fetchBusinessSettings = async () => {
+      try {
+        const settings = await getBusinessSettings('default');
+        setBusinessSettings(settings);
+      } catch (error) {
+        console.error('Error fetching business settings:', error);
+      }
+    };
+    
+    fetchBusinessSettings();
+  }, []);
 
   const getFormattedBusinessHours = (businessHours: BusinessSettings['businessHours'] | undefined) => {
     if (!businessHours) return [];
@@ -42,8 +54,23 @@ export default async function HomePage() {
   const businessAddress = businessSettings?.address || 'Av. Corrientes 1234, CABA';
   const businessEmail = businessSettings?.email || 'info@salonelegancia.com';
   const businessWebsite = businessSettings?.website;
+  const businessInstagram = businessSettings?.instagram;
+  const businessWhatsapp = businessSettings?.whatsapp;
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-rose-50">
+      {/* Admin Button */}
+      {isAdmin && (
+        <div className="fixed top-4 right-4 z-50">
+          <Link 
+            href="/admin/dashboard" 
+            className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg shadow-lg transition-colors duration-200"
+          >
+            <Settings className="w-4 h-4" />
+            <span>Admin</span>
+          </Link>
+        </div>
+      )}
+      
       {/* Hero Section */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-amber-100/20 to-rose-100/20"></div>
@@ -211,14 +238,30 @@ export default async function HomePage() {
                     </a>
                   </div>
                 )}
+                {businessInstagram && (
+                   <div className="flex items-center gap-2">
+                     <BsInstagram className="w-4 h-4" />
+                     <a href={businessInstagram} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">
+                       @{businessInstagram.replace(/^https?:\/\/(www\.)?(instagram\.com\/)?/, '')}
+                     </a>
+                   </div>
+                 )}
+                 {businessWhatsapp && (
+                   <div className="flex items-center gap-2">
+                     <BsWhatsapp className="w-4 h-4" />
+                     <a href={`https://wa.me/${businessWhatsapp.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">
+                       WhatsApp
+                     </a>
+                   </div>
+                 )}
               </div>
             </div>
             <div>
               <h4 className="font-semibold text-lg mb-4">Horarios</h4>
               <div className="space-y-1 text-gray-400">
                 {businessHours.length > 0 ? (
-                  businessHours.map((schedule, index) => (
-                    <p key={index}>{schedule}</p>
+                  businessHours.map((schedule) => (
+                    <p key={`schedule-${schedule}`}>{schedule}</p>
                   ))
                 ) : (
                   <>
@@ -231,7 +274,8 @@ export default async function HomePage() {
             </div>
           </div>
           <div className="border-t border-gray-800 mt-12 pt-8 text-center text-gray-400">
-            <p>&copy; 2024 {businessName}. Todos los derechos reservados.</p>
+            <p>&copy; 2025 {businessName}. Todos los derechos reservados.</p>
+            <p className="mt-2 text-sm">Desarrollado con ❤️ por <span className="text-white font-medium">FreyLabs</span></p>
           </div>
         </div>
       </footer>
