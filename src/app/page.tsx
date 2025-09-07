@@ -1,29 +1,13 @@
-'use client'
 import Link from "next/link";
-import { Sparkles, Calendar, Star, ArrowRight, Phone, MapPin, Clock, Mail, Globe, Instagram, MessageCircle, Settings } from "lucide-react";
+import { Sparkles, Calendar, Star, ArrowRight, Phone, MapPin, Clock, Mail, Globe, Instagram, MessageCircle } from "lucide-react";
 import { getBusinessSettings } from "../lib/firestore/businessSettings/businessSettings";
 import { BusinessSettings } from "../types/models.type";
 import { formatBusinessHoursDisplay } from "../helpers/business-hours";
-import { useAuth } from "../context/auth/AuthContext.context";
-import { useEffect, useState } from "react";
 import { BsInstagram, BsWhatsapp } from "react-icons/bs";
+import AdminButton from "../components/AdminButton/AdminButton";
 
-export default function HomePage() {
-  const { isAdmin } = useAuth();
-  const [businessSettings, setBusinessSettings] = useState<BusinessSettings | null>(null);
-  
-  useEffect(() => {
-    const fetchBusinessSettings = async () => {
-      try {
-        const settings = await getBusinessSettings('default');
-        setBusinessSettings(settings);
-      } catch (error) {
-        console.error('Error fetching business settings:', error);
-      }
-    };
-    
-    fetchBusinessSettings();
-  }, []);
+export default async function HomePage() {
+  const businessSettings = await getBusinessSettings('default');
 
   const getFormattedBusinessHours = (businessHours: BusinessSettings['businessHours'] | undefined) => {
     if (!businessHours) return [];
@@ -59,17 +43,7 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-rose-50">
       {/* Admin Button */}
-      {isAdmin && (
-        <div className="fixed top-4 right-4 z-50">
-          <Link 
-            href="/admin/dashboard" 
-            className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg shadow-lg transition-colors duration-200"
-          >
-            <Settings className="w-4 h-4" />
-            <span>Admin</span>
-          </Link>
-        </div>
-      )}
+      <AdminButton />
       
       {/* Hero Section */}
       <section className="relative overflow-hidden">
